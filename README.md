@@ -6,7 +6,7 @@
 
 ##
 
-Integration for [Unfolded Circle Remote Two](https://unfoldedcircle.com) to send HTTP get/post/patch/put requests and Wake on LAN magic packets to a specified url or ip.
+Integration for [Unfolded Circle Remote Two](https://unfoldedcircle.com) to send HTTP get/post/patch/put requests and Wake on LAN magic packets to a specified url or mac address.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests) and [pywakeonlan](https://github.com/remcohaszing/pywakeonlan).
 
