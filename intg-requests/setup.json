@@ -1,0 +1,21 @@
+{
+    "driver_id": "requests",
+    "version": "0.1",
+    "release_date": "2024-04-27",
+    "min_core_api": "0.24.3",
+    "name": { 
+        "en": "HTTP & WOL Requests",
+        "de": "HTTP & WOL Anfragen"
+      },
+    "icon": "uc:integration",
+    "description": {
+        "en": "Integration to send HTTP get/post/patch/put requests and Wake on LAN magic packets to a specific ip or url",
+        "de": "Integration zum Senden von HTTP Get/Post/Patch/Put-Anfragen und Wake-on-LAN Magic Pakets an eine bestimmte URL oder IP"
+      },
+    "port": 9081,
+    "developer": {
+        "name": "kennymc.c",
+        "url": "https://github.com/kennymc-c/ucr2-integration-requests"
+      },
+    "home_page": "https://github.com/kennymc-c/ucr2-integration-requests"
+}
