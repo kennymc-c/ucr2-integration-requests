@@ -4,7 +4,12 @@ import logging
 from typing import Any
 
 import ucapi
-from requests import get, post, patch, put
+from requests import get as rq_get
+from requests import put as rq_put
+from requests import patch as rq_patch
+from requests import post as rq_post
+from requests import codes as rq_codes
+from requests import exceptions as rq_exceptions
 from wakeonlan import send_magic_packet
 
 import config
@@ -21,23 +26,41 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
         _LOG.error("Source parameter empty")
         return ucapi.StatusCodes.BAD_REQUEST
     
+    rqtimeout = config.setup.get("rq-timeout")
+    
     if id == config.setup.get("id-get"):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
+            try:
+                r = rq_get(cmd_param, timeout=rqtimeout)
+            except rq_exceptions.Timeout as t:
+                _LOG.error("Got timeout from requests module:")
+                _LOG.error(t)
+                return ucapi.StatusCodes.TIMEOUT
+            except Exception as e:
+                _LOG.error("Got error message from requests module:")
+                _LOG.error(e)
+                return ucapi.StatusCodes.CONFLICT
+
+            if r.status_code == rq_codes.ok:
+                _LOG.info("Send " + id + " request to: " + cmd_param)
+                return ucapi.StatusCodes.OK
+            else:
                 try:
-                    r = get(cmd_param)
-                except Exception as e:
+                    r.raise_for_status() #Check if status code in 400 or 500 range
+                except rq_exceptions.HTTPError as e:
                     _LOG.error("Got error message from requests module:")
                     _LOG.error(e)
-                    return ucapi.StatusCodes.BAD_REQUEST
-                
-                if r.status_code == 200:
-                    _LOG.info("Send http get request to: " + cmd_param)
+                    if 400 <= r.status_code <= 499:
+                        if r.status_code == 404:
+                            return ucapi.StatusCodes.NOT_FOUND
+                        else:
+                            return ucapi.StatusCodes.BAD_REQUEST
+                    else:
+                        return ucapi.StatusCodes.SERVER_ERROR
+                if r.raise_for_status() == None:
+                    _LOG.info("Received informational or redirection http status code: " + str(r.status_code))
                     return ucapi.StatusCodes.OK
-                else:
-                    msg = "Received http error code: " + str(r.status_code) + " from " + cmd_param
-                    _LOG.error(msg)
-                    return ucapi.StatusCodes.SERVER_ERROR
         
         else:
             _LOG.error("Command not implemented: " + cmd_name)
@@ -48,20 +71,36 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
     if id == config.setup.get("id-patch"):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
+            try:
+                r = rq_patch(cmd_param, timeout=rqtimeout)
+            except rq_exceptions.Timeout as t:
+                _LOG.error("Got timeout from requests module:")
+                _LOG.error(t)
+                return ucapi.StatusCodes.TIMEOUT
+            except Exception as e:
+                _LOG.error("Got error message from requests module:")
+                _LOG.error(e)
+                return ucapi.StatusCodes.CONFLICT
+
+            if r.status_code == rq_codes.ok:
+                _LOG.info("Send " + id + " request to: " + cmd_param)
+                return ucapi.StatusCodes.OK
+            else:
                 try:
-                    r = patch(cmd_param)
-                except Exception as e:
+                    r.raise_for_status() #Check if status code in 400 or 500 range
+                except rq_exceptions.HTTPError as e:
                     _LOG.error("Got error message from requests module:")
                     _LOG.error(e)
-                    return ucapi.StatusCodes.BAD_REQUEST
-                
-                if r.status_code == 200:
-                    _LOG.info("Send http patch request to: " + cmd_param)
+                    if 400 <= r.status_code <= 499:
+                        if r.status_code == 404:
+                            return ucapi.StatusCodes.NOT_FOUND
+                        else:
+                            return ucapi.StatusCodes.BAD_REQUEST
+                    else:
+                        return ucapi.StatusCodes.SERVER_ERROR
+                if r.raise_for_status() == None:
+                    _LOG.info("Received informational or redirection http status code: " + str(r.status_code))
                     return ucapi.StatusCodes.OK
-                else:
-                    msg = "Received http error code: " + str(r.status_code) + " from " + cmd_param
-                    _LOG.error(msg)
-                    return ucapi.StatusCodes.SERVER_ERROR
         
         else:
             _LOG.error("Command not implemented: " + cmd_name)
@@ -72,20 +111,36 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
     if id == config.setup.get("id-post"):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
+            try:
+                r = rq_post(cmd_param, timeout=rqtimeout)
+            except rq_exceptions.Timeout as t:
+                _LOG.error("Got timeout from requests module:")
+                _LOG.error(t)
+                return ucapi.StatusCodes.TIMEOUT
+            except Exception as e:
+                _LOG.error("Got error message from requests module:")
+                _LOG.error(e)
+                return ucapi.StatusCodes.CONFLICT
+
+            if r.status_code == rq_codes.ok:
+                _LOG.info("Send " + id + " request to: " + cmd_param)
+                return ucapi.StatusCodes.OK
+            else:
                 try:
-                    r = post(cmd_param)
-                except Exception as e:
+                    r.raise_for_status() #Check if status code in 400 or 500 range
+                except rq_exceptions.HTTPError as e:
                     _LOG.error("Got error message from requests module:")
                     _LOG.error(e)
-                    return ucapi.StatusCodes.BAD_REQUEST
-                
-                if r.status_code == 200:
-                    _LOG.info("Send http post request to: " + cmd_param)
+                    if 400 <= r.status_code <= 499:
+                        if r.status_code == 404:
+                            return ucapi.StatusCodes.NOT_FOUND
+                        else:
+                            return ucapi.StatusCodes.BAD_REQUEST
+                    else:
+                        return ucapi.StatusCodes.SERVER_ERROR
+                if r.raise_for_status() == None:
+                    _LOG.info("Received informational or redirection http status code: " + str(r.status_code))
                     return ucapi.StatusCodes.OK
-                else:
-                    msg = "Received http error code: " + str(r.status_code) + " from " + cmd_param
-                    _LOG.error(msg)
-                    return ucapi.StatusCodes.SERVER_ERROR
         
         else:
             _LOG.error("Command not implemented: " + cmd_name)
@@ -96,20 +151,36 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
     if id == config.setup.get("id-put"):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
+            try:
+                r = rq_put(cmd_param, timeout=rqtimeout)
+            except rq_exceptions.Timeout as t:
+                _LOG.error("Got timeout from requests module:")
+                _LOG.error(t)
+                return ucapi.StatusCodes.TIMEOUT
+            except Exception as e:
+                _LOG.error("Got error message from requests module:")
+                _LOG.error(e)
+                return ucapi.StatusCodes.CONFLICT
+
+            if r.status_code == rq_codes.ok:
+                _LOG.info("Send " + id + " request to: " + cmd_param)
+                return ucapi.StatusCodes.OK
+            else:
                 try:
-                    r = put(cmd_param)
-                except Exception as e:
+                    r.raise_for_status() #Check if status code in 400 or 500 range
+                except rq_exceptions.HTTPError as e:
                     _LOG.error("Got error message from requests module:")
                     _LOG.error(e)
-                    return ucapi.StatusCodes.BAD_REQUEST
-                
-                if r.status_code == 200:
-                    _LOG.info("Send http put request to: " + cmd_param)
+                    if 400 <= r.status_code <= 499:
+                        if r.status_code == 404:
+                            return ucapi.StatusCodes.NOT_FOUND
+                        else:
+                            return ucapi.StatusCodes.BAD_REQUEST
+                    else:
+                        return ucapi.StatusCodes.SERVER_ERROR
+                if r.raise_for_status() == None:
+                    _LOG.info("Received informational or redirection http status code: " + str(r.status_code))
                     return ucapi.StatusCodes.OK
-                else:
-                    msg = "Received http error code: " + str(r.status_code) + " from " + cmd_param
-                    _LOG.error(msg)
-                    return ucapi.StatusCodes.SERVER_ERROR
         
         else:
             _LOG.error("Command not implemented: " + cmd_name)

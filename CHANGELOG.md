@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+### Added
+
+- Added a more granular http status code response handling
+
+### Changed
+- Only return an error response to the remote if the http response code is in the 400 or 500 range. Otherwise display the status code in the integration log if it's not 200/Ok
 
 ## [0.1-beta] - 2024-03-27
 

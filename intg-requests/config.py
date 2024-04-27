@@ -9,6 +9,7 @@ class setup:
 
     __conf = {
     "standby": False,
+    "rq-timeout": 2,
     "id-get": "http-get",
     "name-get": "HTTP Get",
     "id-post": "http-post",
