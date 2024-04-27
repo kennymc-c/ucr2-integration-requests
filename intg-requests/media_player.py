@@ -8,7 +8,6 @@ from requests import get, post, patch, put
 from wakeonlan import send_magic_packet
 
 import config
-import driver
 
 _LOG = logging.getLogger(__name__)
 
@@ -16,34 +15,29 @@ _LOG = logging.getLogger(__name__)
 
 def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
 
-    def cmd_error(msg: str = None):
-        if msg == None:
-            _LOG.error("Error while executing the command: " + cmd_name + " with parameter " + params["source"] + " for entity id " + id)
-            return ucapi.StatusCodes.SERVER_ERROR
-        else:
-            _LOG.error(msg)
-            return ucapi.StatusCodes.BAD_REQUEST
-
     if params["source"] != "":
         cmd_param = params["source"]
     else:
         _LOG.error("Source parameter empty")
         return ucapi.StatusCodes.BAD_REQUEST
     
-
-    
     if id == config.setup.get("id-get"):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
                 try:
                     r = get(cmd_param)
-                except:
-                    cmd_error()
+                except Exception as e:
+                    _LOG.info("Got error message from requests module:")
+                    _LOG.error(e)
+                    return ucapi.StatusCodes.BAD_REQUEST
                 
                 if r.status_code == 200:
+                    _LOG.info("Send http get request to: " + cmd_param)
                     return ucapi.StatusCodes.OK
                 else:
-                    cmd_error("Received http error code: " + str(r.status_code) + " from " + cmd_param)
+                    msg = "Received http error code: " + str(r.status_code) + " from " + cmd_param
+                    _LOG.error(msg)
+                    return ucapi.StatusCodes.SERVER_ERROR
         
         else:
             _LOG.error("Command not implemented: " + cmd_name)
@@ -56,13 +50,18 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 
                 try:
                     r = patch(cmd_param)
-                except:
-                    cmd_error()
+                except Exception as e:
+                    _LOG.info("Got error message from requests module:")
+                    _LOG.error(e)
+                    return ucapi.StatusCodes.BAD_REQUEST
                 
                 if r.status_code == 200:
+                    _LOG.info("Send http patch request to: " + cmd_param)
                     return ucapi.StatusCodes.OK
                 else:
-                    cmd_error("Received http error code: " + str(r.status_code) + " from " + cmd_param)
+                    msg = "Received http error code: " + str(r.status_code) + " from " + cmd_param
+                    _LOG.error(msg)
+                    return ucapi.StatusCodes.SERVER_ERROR
         
         else:
             _LOG.error("Command not implemented: " + cmd_name)
@@ -75,13 +74,18 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 
                 try:
                     r = post(cmd_param)
-                except:
-                    cmd_error()
+                except Exception as e:
+                    _LOG.info("Got error message from requests module:")
+                    _LOG.error(e)
+                    return ucapi.StatusCodes.BAD_REQUEST
                 
                 if r.status_code == 200:
+                    _LOG.info("Send http post request to: " + cmd_param)
                     return ucapi.StatusCodes.OK
                 else:
-                    cmd_error("Received http error code: " + str(r.status_code) + " from " + cmd_param)
+                    msg = "Received http error code: " + str(r.status_code) + " from " + cmd_param
+                    _LOG.error(msg)
+                    return ucapi.StatusCodes.SERVER_ERROR
         
         else:
             _LOG.error("Command not implemented: " + cmd_name)
@@ -94,13 +98,18 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 
                 try:
                     r = put(cmd_param)
-                except:
-                    cmd_error()
+                except Exception as e:
+                    _LOG.info("Got error message from requests module:")
+                    _LOG.error(e)
+                    return ucapi.StatusCodes.BAD_REQUEST
                 
                 if r.status_code == 200:
+                    _LOG.info("Send http put request to: " + cmd_param)
                     return ucapi.StatusCodes.OK
                 else:
-                    cmd_error("Received http error code: " + str(r.status_code) + " from " + cmd_param)
+                    msg = "Received http error code: " + str(r.status_code) + " from " + cmd_param
+                    _LOG.error(msg)
+                    return ucapi.StatusCodes.SERVER_ERROR
         
         else:
             _LOG.error("Command not implemented: " + cmd_name)
@@ -114,9 +123,11 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
             try:
                 send_magic_packet(cmd_param)
             except ValueError:
-                cmd_error(cmd_param + " is not a mac valid address")
+                _LOG.error(cmd_param + " is not a mac valid address")
+                return ucapi.StatusCodes.BAD_REQUEST
             except Exception as e:
-                cmd_error(e)
+                _LOG.error(e)
+                return ucapi.StatusCodes.BAD_REQUEST
 
             _LOG.info("Send WoL magic packet to: " + cmd_name)
             return ucapi.StatusCodes.OK

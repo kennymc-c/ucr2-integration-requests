@@ -19,7 +19,7 @@ api = ucapi.IntegrationAPI(loop)
 
 async def startcheck():
     """
-    Called at the start of the integration driver. Adds a media player entity for all configured cmds list entries in config.py
+    Called at the start of the integration driver to add a media player entity for all configured cmds list entries in config.py
     """
 
     for cmd in config.setup.cmds:
@@ -35,6 +35,13 @@ async def startcheck():
 
 
 async def add_mp(id: str, name: str):
+    #TODO Only works when in driver.py. When in media_player.py the response to get_available entities is an empty list
+    """
+    Creates the media player entity definition and adds the entity to the remote via the api
+
+    :param id: media_player entity id
+    :param name: media_player entity name
+    """
 
     definition = ucapi.MediaPlayer(
         id, 
