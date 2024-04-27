@@ -1,4 +1,4 @@
-# Sony Projector Integration for Unfolded Circle Remote Two
+# HTTP Get/Post/Put/Patch & Wake on LAN Integration for Unfolded Circle Remote Two
 
 ## ⚠️ WARNING ⚠️
 
@@ -27,7 +27,7 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 
 ## Usage
 
-The integration exposes a media player entity for each supported request command. These entities only support the source feature. Just enter the desired url or mac address in the source field when you configure your activity sequences/ui.
+The integration exposes a media player entity for each supported request command. These entities only support the source feature. Just enter the desired url or mac address in the source field when you configure your activity/macro sequences or activity ui.
 
 ### Setup
 
