@@ -27,7 +27,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 try:
                     r = get(cmd_param)
                 except Exception as e:
-                    _LOG.info("Got error message from requests module:")
+                    _LOG.error("Got error message from requests module:")
                     _LOG.error(e)
                     return ucapi.StatusCodes.BAD_REQUEST
                 
@@ -51,7 +51,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 try:
                     r = patch(cmd_param)
                 except Exception as e:
-                    _LOG.info("Got error message from requests module:")
+                    _LOG.error("Got error message from requests module:")
                     _LOG.error(e)
                     return ucapi.StatusCodes.BAD_REQUEST
                 
@@ -75,7 +75,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 try:
                     r = post(cmd_param)
                 except Exception as e:
-                    _LOG.info("Got error message from requests module:")
+                    _LOG.error("Got error message from requests module:")
                     _LOG.error(e)
                     return ucapi.StatusCodes.BAD_REQUEST
                 
@@ -99,7 +99,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 try:
                     r = put(cmd_param)
                 except Exception as e:
-                    _LOG.info("Got error message from requests module:")
+                    _LOG.error("Got error message from requests module:")
                     _LOG.error(e)
                     return ucapi.StatusCodes.BAD_REQUEST
                 
@@ -122,14 +122,16 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
 
             try:
                 send_magic_packet(cmd_param)
-            except ValueError:
-                _LOG.error(cmd_param + " is not a mac valid address")
+            except ValueError as v:
+                _LOG.error("Got error message from wakeonlan module:")
+                _LOG.error(v)
                 return ucapi.StatusCodes.BAD_REQUEST
             except Exception as e:
+                _LOG.error("Got error message from wakeonlan module:")
                 _LOG.error(e)
                 return ucapi.StatusCodes.BAD_REQUEST
 
-            _LOG.info("Send WoL magic packet to: " + cmd_name)
+            _LOG.info("Send wake on lan magic packet to: " + cmd_param)
             return ucapi.StatusCodes.OK
         
         else:
