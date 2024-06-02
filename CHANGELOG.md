@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - added data for the post request
-- changed timeout from 2 to 5 seconds
+- the entry for the source must be http://<URL>:<PORT>§key1=value1,key2=value2
 
 ### Added
 
