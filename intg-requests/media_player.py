@@ -112,7 +112,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
             try:
-                url, param = cmd_param.split('?')
+                url, param = cmd_param.split('$')
                 data = dict(pair.split('=') for pair in param.split(','))
                 r = rq_post(url, data, timeout=rqtimeout)
             except rq_exceptions.Timeout as t:
