@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-*Changes in the next release*
+- added data for the post request
+- changed timeout from 2 to 5 seconds
 
 ### Added
 
