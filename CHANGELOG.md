@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - added data for the post request
-- new optional parameter in form key=value
-- the entry for the source must be http://"URL":"PORT"§key1=value1,key2=value2
+- command is splited with the characters | and §
+- | adds the string after | to the post request
+- § adds the string after § to the post as dictionary
+- for § the entry for the source must be http://"URL":"PORT"§key1=value1,key2=value2
 
 ### Added
 
