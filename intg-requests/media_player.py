@@ -117,7 +117,11 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 	data = dict(pair.split('=') for pair in param.split(','))
                 	r = rq_post(url, data, timeout=rqtimeout)
                 else:
-                	r = rq_post(cmd_param, timeout=rqtimeout)
+                    if '|' in cmd_param:
+                        url, param = cmd_param.split('|')
+                        r = rq_post(url, param, timeout=rqtimeout)
+                    else:
+                    	r = rq_post(cmd_param, timeout=rqtimeout)
             except rq_exceptions.Timeout as t:
                 _LOG.error("Got timeout from requests module:")
                 _LOG.error(t)
