@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-*Changes in the next release*
+- added data for the post request
+- command is splited with the characters | and §
+- | adds the string after | to the post request
+- § adds the string after § to the post as dictionary
+- for § the entry for the source must be http://"URL":"PORT"§key1=value1,key2=value2
 
 ### Added
 
