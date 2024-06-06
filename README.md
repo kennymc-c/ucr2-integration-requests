@@ -35,9 +35,9 @@ For http requests your server needs to respond with a 200 OK or any other inform
 <br>
 <br>
 Optional form data in the request body as key/value pairs can be added with a paragraph as a separator like this:
-- *https://httpbin.org/post*__§__*key1*__=__*value1*__,__*key2*__=__*value2*
+- https://httpbin.org/post§key1=value1,key2=value2
 
-Note that if you your url contains this separator character you need to url-encode it first (%C2%A7, see https://www.urlencoder.io)
+Note that if your url contains a paragraph you need to url-encode it first (%C2%A7, see https://www.urlencoder.io)
 
 
 ### Setup
