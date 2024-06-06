@@ -14,20 +14,31 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 ### Supported features
 
 - Send http(s) get, post, patch & put requests to a specified url
-  - Currently untested: Add optional parameters and arguments to the requests as explained here: https://requests.readthedocs.io/en/latest/api/#main-interface
 - Send Wake on LAN magic packets to a specified mac address
 
 
 ### Planned features
 
 - Send Wake on LAN magic packets by entering the ip address
+- Support for sending json and xml data in request body
+- Configurable timeout in integration setup
+- Support for self signed SSL certificates / deactivate SSL verification in integration setup
 
 *Planned improvements are labeled with #TODO in the code*
 
 
 ## Usage
 
-The integration exposes a media player entity for each supported request command. These entities only support the source feature. Just enter the desired url or mac address in the source field when you configure your activity/macro sequences or activity ui.
+The integration exposes a media player entity for each supported request command. These entities only support the source feature. Just enter the desired url (including http(s)://) or mac address in the source field when you configure your activity/macro sequences or activity ui. The default timeout is 2 seconds.
+<br>
+For http requests your server needs to respond with a 200 OK or any other informational or redirection http status codes (100s, 200s or 300s). In case of a client or server error (400s or 500s) the command will fail on the remote and the error and status code will be shown in the log of the integration.
+<br>
+<br>
+Optional form data in the request body as key/value pairs can be added with a paragraph as a separator like this:
+- *https://httpbin.org/post*__§__*key1*__=__*value1*__,__*key2*__=__*value2*
+
+Note that if you your url contains this separator character you need to url-encode it first (%C2%A7, see https://www.urlencoder.io)
+
 
 ### Setup
 

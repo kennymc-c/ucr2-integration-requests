@@ -2,6 +2,7 @@
 
 import logging
 from typing import Any
+import json
 
 import ucapi
 from requests import get as rq_get
@@ -32,7 +33,15 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
             try:
-                r = rq_get(cmd_param, timeout=rqtimeout)
+                #TODO needed for self signed certs, add this as an option in setup flow to not break check for valid ssl certs
+                # import urllib3; urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                # r = rq_get(cmd_param, data, timeout=rqtimeout, verify=False)
+                if "§" in cmd_param:
+                    url, param = cmd_param.split("§")
+                    data = dict(pair.split("=") for pair in param.split(","))
+                    r = rq_get(url, data, timeout=rqtimeout)
+                else:
+                    r = rq_get(cmd_param, timeout=rqtimeout)
             except rq_exceptions.Timeout as t:
                 _LOG.error("Got timeout from requests module:")
                 _LOG.error(t)
@@ -43,7 +52,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 return ucapi.StatusCodes.CONFLICT
 
             if r.status_code == rq_codes.ok:
-                _LOG.info("Send " + id + " request to: " + cmd_param)
+                _LOG.info("Sent " + id + " request to: " + cmd_param)
                 return ucapi.StatusCodes.OK
             else:
                 try:
@@ -72,7 +81,12 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
             try:
-                r = rq_patch(cmd_param, timeout=rqtimeout)
+                if "§" in cmd_param:
+                    url, param = cmd_param.split("§")
+                    data = dict(pair.split("=") for pair in param.split(","))
+                    r = rq_patch(url, data, timeout=rqtimeout)
+                else:
+                    r = rq_patch(cmd_param, timeout=rqtimeout)
             except rq_exceptions.Timeout as t:
                 _LOG.error("Got timeout from requests module:")
                 _LOG.error(t)
@@ -83,7 +97,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 return ucapi.StatusCodes.CONFLICT
 
             if r.status_code == rq_codes.ok:
-                _LOG.info("Send " + id + " request to: " + cmd_param)
+                _LOG.info("Sent " + id + " request to: " + cmd_param)
                 return ucapi.StatusCodes.OK
             else:
                 try:
@@ -112,16 +126,12 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
             try:
-                if '§' in cmd_param:
-                	url, param = cmd_param.split('§')
-                	data = dict(pair.split('=') for pair in param.split(','))
-                	r = rq_post(url, data, timeout=rqtimeout)
+                if "§" in cmd_param:
+                    url, param = cmd_param.split("§")
+                    payload = dict(pair.split("=") for pair in param.split(","))
+                    r = rq_post(url, data=payload, timeout=rqtimeout)
                 else:
-                    if '|' in cmd_param:
-                        url, param = cmd_param.split('|')
-                        r = rq_post(url, param, timeout=rqtimeout)
-                    else:
-                    	r = rq_post(cmd_param, timeout=rqtimeout)
+                    r = rq_post(cmd_param, timeout=rqtimeout)
             except rq_exceptions.Timeout as t:
                 _LOG.error("Got timeout from requests module:")
                 _LOG.error(t)
@@ -132,7 +142,9 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 return ucapi.StatusCodes.CONFLICT
 
             if r.status_code == rq_codes.ok:
-                _LOG.info("Send " + id + " request to: " + cmd_param)
+                _LOG.info("Sent " + id + " request to: " + cmd_param)
+                #_LOG.debug(r.text)
+                #_LOG.debug(r.json())
                 return ucapi.StatusCodes.OK
             else:
                 try:
@@ -161,7 +173,12 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
                 
             try:
-                r = rq_put(cmd_param, timeout=rqtimeout)
+                if "§" in cmd_param:
+                    url, param = cmd_param.split("§")
+                    data = dict(pair.split("=") for pair in param.split(","))
+                    r = rq_put(url, data, timeout=rqtimeout)
+                else:
+                    r = rq_put(cmd_param, timeout=rqtimeout)
             except rq_exceptions.Timeout as t:
                 _LOG.error("Got timeout from requests module:")
                 _LOG.error(t)
@@ -172,7 +189,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 return ucapi.StatusCodes.CONFLICT
 
             if r.status_code == rq_codes.ok:
-                _LOG.info("Send " + id + " request to: " + cmd_param)
+                _LOG.info("Sent " + id + " request to: " + cmd_param)
                 return ucapi.StatusCodes.OK
             else:
                 try:
@@ -211,7 +228,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None):
                 _LOG.error(e)
                 return ucapi.StatusCodes.BAD_REQUEST
 
-            _LOG.info("Send wake on lan magic packet to: " + cmd_param)
+            _LOG.info("Sent wake on lan magic packet to: " + cmd_param)
             return ucapi.StatusCodes.OK
         
         else:
