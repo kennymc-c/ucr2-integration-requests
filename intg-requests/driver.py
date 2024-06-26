@@ -9,6 +9,7 @@ import os
 
 import config
 import media_player
+import setup
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 
@@ -19,23 +20,22 @@ api = ucapi.IntegrationAPI(loop)
 
 async def startcheck():
     """
-    Called at the start of the integration driver to add a media player entity for all configured cmds list entries in config.py
+    Called at the start of the integration driver to load the config file into the runtime storage and add a media player entity for all configured cmds
     """
+    try:
+        config.setup.load()
+    except OSError as o:
+        _LOG.critical(o)
+        _LOG.critical("Stopping integration driver")
+        raise SystemExit(0)
 
-    for cmd in config.setup.cmds:
-        id = config.setup.get("id-"+cmd)
-        name = config.setup.get("name-"+cmd)
-
-        if api.available_entities.contains(id):
-            _LOG.debug("Entity with id " + id + " is already in storage as available entity")
-        else:
-            _LOG.info("Add entity with id " + id + " and name " + name + " as available entity")
-            await add_mp(id, name)
+    if config.setup.get("setup_complete"):
+        await setup.add_mp_all()
 
 
 
 async def add_mp(id: str, name: str):
-    #TODO Only works when in driver.py. When in media_player.py the response to get_available entities is an empty list
+    # Only works when in driver.py. When in media_player.py the response to get_available entities is an empty list
     """
     Creates the media player entity definition and adds the entity to the remote via the api
 
@@ -72,7 +72,7 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
     if _params == None:
         _LOG.info(f"Received {cmd_id} command for {entity.id}")
     else:
-        _LOG.info(f"Received {cmd_id} command with parameter {_params} for {entity.id}")
+        _LOG.info(f"Received {cmd_id} command with parameter {_params} for entity id {entity.id}")
     
     return media_player.mp_cmd_assigner(entity.id, cmd_id, _params)
 
@@ -91,7 +91,6 @@ async def on_r2_connect() -> None:
 
 
 @api.listens_to(ucapi.Events.DISCONNECT)
-#TODO Find out how to prevent the remote from constantly reconnecting when the integration is not running without deleting the integration configuration on the remote every time
 async def on_r2_disconnect() -> None:
     """
     Disconnect notification from the remote Two.
@@ -174,7 +173,7 @@ async def main():
 
     _LOG.debug("Starting driver")
     
-    await api.init("setup.json")
+    await setup.init()
     await startcheck()
 
 

@@ -1,4 +1,4 @@
-# HTTP Get/Post/Put/Patch & Wake on LAN Integration for Unfolded Circle Remote Two
+# HTTP Get/Post/Put/Patch & Wake on LAN Integration for Unfolded Circle Remote Two and Remote 3
 
 ## ⚠️ WARNING ⚠️
 
@@ -6,7 +6,7 @@
 
 ##
 
-Integration for [Unfolded Circle Remote Two](https://unfoldedcircle.com) to send network requests to a specified url or mac address.
+Integration for Unfolded Circle [Remote Two](https://www.unfoldedcircle.com/remote-two) and [Remote 3](https://www.unfoldedcircle.com) running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) to send network requests to a specified url or mac address.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests) and [pywakeonlan](https://github.com/remcohaszing/pywakeonlan).
 
@@ -14,6 +14,7 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 ### Supported features
 
 - Send http(s) get, post, patch & put requests to a specified url
+  - Set a custom timeout and deactivate ssl certificate verification
 - Send Wake on LAN magic packets to a specified mac address
 
 
@@ -21,23 +22,25 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 
 - Send Wake on LAN magic packets by entering the ip address
 - Support for sending json and xml data in request body
-- Configurable timeout in integration setup
-- Support for self signed SSL certificates / deactivate SSL verification in integration setup
 
 *Planned improvements are labeled with #TODO in the code*
 
 
+## Configuration
+
+During the integration setup you can change the default http request timeout of 2 seconds to a custom value. You also can deactivate the ssl certificate verification. This is needed for self signed certificates. You can run the setup process again in the integration settings after adding entities to the remote.
+
 ## Usage
 
-The integration exposes a media player entity for each supported request command. These entities only support the source feature. Just enter the desired url (including http(s)://) or mac address in the source field when you configure your activity/macro sequences or activity ui. The default timeout is 2 seconds.
+The integration exposes a media player entity for each supported request command. These entities only support the source feature. Just enter the desired url (including http(s)://) or mac address in the source field when you configure your activity/macro sequences or activity ui.
 <br>
-For http requests your server needs to respond with a 200 OK or any other informational or redirection http status codes (100s, 200s or 300s). In case of a client or server error (400s or 500s) the command will fail on the remote and the error and status code will be shown in the log of the integration.
+For http requests your server needs to respond with a *200 OK* status or any other informational or redirection http status codes (100s, 200s or 300s). In case of a client or server error (400s or 500s) the command will fail on the remote and the error message and status code will be shown in the integration log.
 <br>
 <br>
-Optional form data in the request body as key/value pairs can be added with a paragraph as a separator like this:
+Optional form data in the request body as key/value pairs can be added with a paragraph character (§) as a separator like this:
 - https://httpbin.org/post§key1=value1,key2=value2
 
-Note that if your url contains a paragraph you need to url-encode it first (%C2%A7, see https://www.urlencoder.io)
+Note that if your url contains a paragraph character you need to url-encode it first (%C2%A7, see https://www.urlencoder.io)
 
 
 ### Setup
