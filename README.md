@@ -6,7 +6,7 @@
 
 ##
 
-Integration for Unfolded Circle [Remote Two](https://www.unfoldedcircle.com/remote-two) and [Remote 3](https://www.unfoldedcircle.com) running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) to send network requests to a specified url or mac address.
+Integration for Unfolded Circle [Remote Two](https://www.unfoldedcircle.com/remote-two) and [Remote 3](https://www.unfoldedcircle.com) running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) to send http requests and wake-on-lan magic packets.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests), [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) and [getmac](https://github.com/GhostofGoes/getmac).
 
@@ -14,6 +14,7 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 ### Supported features
 
 - Send http(s) get, post, patch & put requests to a specified url
+  - Add form data as key/value pairs (see "Usage" section below)
   - Define a global custom timeout and deactivate ssl certificate verification during the integration setup
 - Send Wake on LAN magic packets to a specified mac address, ip (v4/v6) or hostname (ipv4 only)
   - Discover the mac address from an ip address or a hostname may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
@@ -33,10 +34,21 @@ During the integration setup you can change the default http request timeout of 
 ## Usage
 
 The integration exposes a media player entity for each supported request command. These entities only support the source feature. Just enter the desired url (including http(s)://) or mac address in the source field when you configure your activity/macro sequences or activity ui.
-<br>
+
+### Wake-on-lan
+
+Choose the Wake on lan entity from the integration setup and add it to an activity or macro. Enter the desired hostname, mac or ip address (ipv4/v6) in the source field when you configure your activity/macro sequence or activity ui.
+
+### HTTP requests
+
+Choose one or more HTTP request method entities from the integration setup and add it to an activity or macro. Enter the desired url (including http(s)://) in the source field when you configure your activity/macro sequences or activity ui.
+
+#### Expected server response
+
 For http requests your server needs to respond with a *200 OK* status or any other informational or redirection http status codes (100s, 200s or 300s). In case of a client or server error (400s or 500s) the command will fail on the remote and the error message and status code will be shown in the integration log.
-<br>
-<br>
+
+#### Add form data
+
 Optional form data in the request body as key/value pairs can be added with a paragraph character (§) as a separator like this:
 - https://httpbin.org/post§key1=value1,key2=value2
 
