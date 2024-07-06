@@ -1,3 +1,5 @@
+"""This module contains some fixed variables, the Setup class which includes all fixed and customizable variables"""
+
 import json
 import os
 import logging
@@ -7,7 +9,9 @@ _LOG = logging.getLogger(__name__)
 CFG_FILENAME = "config.json"
 
 
-class setup:
+class Setup:
+    """Setup class which includes all fixed and customizable variables including functions to set() and get() them from a runtime storage
+    which includes storing them in a json config file and as well as load() them from this file"""
     __conf = {
     "standby": False,
     "setup_complete": False,
@@ -30,90 +34,93 @@ class setup:
     all_cmds = ["get", "post", "patch", "put", "wol"]
     rq_ids = [__conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"]]
     rq_names = [__conf["name-get"], __conf["name-post"], __conf["name-patch"], __conf["name-put"]]
-    
+
     @staticmethod
     def get(key):
-        if setup.__conf[key] != "":
-            return setup.__conf[key]
-        else:
-            _LOG.error("Got empty value for " + key + " from config storage")
+        """Get the value from the specified key in __conf"""
+        if Setup.__conf[key] == "":
+            raise ValueError("Got empty value for " + key + " from config storage")
+        return Setup.__conf[key]
+
 
     @staticmethod
     def set(key, value):
-
-        if key in setup.__setters:
-            if setup.__conf["setup_reconfigure"] == True and key == "setup_complete":
+        """Set and store a value for the specified key into the runtime storage and config file.
+        Storing setup_complete flag during reconfiguration will be ignored"""
+        if key in Setup.__setters:
+            if Setup.__conf["setup_reconfigure"] is True and key == "setup_complete":
                 _LOG.debug("Ignore setting and storing setup_complete flag during reconfiguration")
             else:
-                setup.__conf[key] = value
+                Setup.__conf[key] = value
                 _LOG.debug("Stored " + key + ": " + str(value) + " into runtime storage")
 
                 #Store key/value pair in config file
-                if key in setup.__storers:
-                        
+                if key in Setup.__storers:
+
                     jsondata = {key: value}
                     if os.path.isfile(CFG_FILENAME):
-                            try:
-                                with open(CFG_FILENAME, "r+") as f:
-                                    l = json.load(f)
-                                    l.update(jsondata)
-                                    f.seek(0)
-                                    f.truncate() #Needed when the new value has less characters than the old value (e.g. false to true or 11 to 5 seconds timeout)
-                                    json.dump(l, f)
-                                    f.close
-                                    _LOG.debug("Stored " + key + ": " + str(value) + " into " + CFG_FILENAME)
-                            except OSError as o:
-                                raise Exception(o)
-                            except:
-                                raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME)
+                        try:
+                            with open(CFG_FILENAME, "r+", encoding="utf-8") as f:
+                                l = json.load(f)
+                                l.update(jsondata)
+                                f.seek(0)
+                                f.truncate() #Needed when the new value has less characters than the old value (e.g. false to true or 11 to 5 seconds timeout)
+                                json.dump(l, f)
+                                _LOG.debug("Stored " + key + ": " + str(value) + " into " + CFG_FILENAME)
+                        except OSError as o:
+                            raise Exception(o) from o
+                        except Exception as e:
+                            raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME) from e
 
                     #Create config file first if it doesn't exists yet
                     else:
                         try:
-                            with open(CFG_FILENAME, "w") as f:
+                            with open(CFG_FILENAME, "w", encoding="utf-8") as f:
                                 json.dump(jsondata, f)
-                                f.close
                             _LOG.debug("Created " + CFG_FILENAME + " and stored " + key + ": " + str(value) + " in it")
                         except OSError as o:
-                            raise Exception(o)
-                        except:
-                            raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME)
-                        
+                            raise Exception(o) from o
+                        except Exception as e:
+                            raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME) from e
+
                 else:
                     _LOG.debug(key + " not found in __storers because it should not be stored in the config file")
 
         else:
             raise NameError(key + " not found in __setters because it should not be changed")
-        
+
     @staticmethod
     def load():
+        """Load all variables from the config json file into the runtime storage"""
         if os.path.isfile(CFG_FILENAME):
 
             try:
-                with open(CFG_FILENAME, "r") as f:
+                with open(CFG_FILENAME, "r", encoding="utf-8") as f:
                     configfile = json.load(f)
-            except:
-                raise OSError("Error while reading " + CFG_FILENAME)
+            except Exception as e:
+                raise OSError("Error while reading " + CFG_FILENAME) from e
             if configfile == "":
                 raise OSError("Error in " + CFG_FILENAME + ". No data")
 
-            setup.__conf["setup_complete"] = configfile["setup_complete"]
+            Setup.__conf["setup_complete"] = configfile["setup_complete"]
             _LOG.debug("Loaded setup_complete: " + str(configfile["setup_complete"]) + " into runtime storage from " + CFG_FILENAME)
 
-            if not setup.__conf["setup_complete"]:
+            if not Setup.__conf["setup_complete"]:
                 _LOG.warning("The setup was not completed the last time. Please restart the setup process")
             else:
                 if "rq_timeout" in configfile:
-                    setup.__conf["rq_timeout"] = configfile["rq_timeout"]
+                    Setup.__conf["rq_timeout"] = configfile["rq_timeout"]
                     _LOG.info("Loaded requests timeout of " + str(configfile["rq_timeout"]) + " seconds into runtime storage from " + CFG_FILENAME)
                 else:
-                    _LOG.info("Skip loading custom requests timeout as it has not been changed during setup. Default value of " + str(setup.get("rq_timeout")) + " seconds will be used")
+                    _LOG.info("Skip loading custom requests timeout as it has not been changed during setup. \
+                    Default value of " + str(Setup.get("rq_timeout")) + " seconds will be used")
 
                 if "rq_ssl_verify" in configfile:
-                    setup.__conf["rq_ssl_verify"] = configfile["rq_ssl_verify"]
+                    Setup.__conf["rq_ssl_verify"] = configfile["rq_ssl_verify"]
                     _LOG.info("Loaded http ssl verification: " + str(configfile["rq_ssl_verify"]) + " into runtime storage from " + CFG_FILENAME)
                 else:
-                    _LOG.info("Skip loading http ssl verification flag as it has not been changed during setup. Default value " + str(setup.get("rq_ssl_verify")) + " will be used")
+                    _LOG.info("Skip loading http ssl verification flag as it has not been changed during setup. \
+                    Default value " + str(Setup.get("rq_ssl_verify")) + " will be used")
 
         else:
             _LOG.info(CFG_FILENAME + " does not exist (yet). Please start the setup process")
