@@ -18,6 +18,7 @@ class Setup:
     "setup_reconfigure": False,
     "rq_timeout": 2,
     "rq_ssl_verify": True,
+    "rq_user_agent": "uc-intg-requests",
     "id-get": "http-get",
     "name-get": "HTTP Get",
     "id-post": "http-post",
@@ -26,14 +27,18 @@ class Setup:
     "name-patch": "HTTP Patch",
     "id-put": "http-put",
     "name-put": "HTTP Put",
+    "id-delete": "http-delete",
+    "name-delete": "HTTP Delete",
+    "id-head": "http-head",
+    "name-head": "HTTP Head",
     "id-wol": "wol",
     "name-wol": "Wake on LAN"
     }
     __setters = ["standby", "setup_complete", "setup_reconfigure", "rq_timeout", "rq_ssl_verify"]
     __storers = ["setup_complete", "rq_timeout", "rq_ssl_verify"] #Skip runtime only related values in config file
-    all_cmds = ["get", "post", "patch", "put", "wol"]
-    rq_ids = [__conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"]]
-    rq_names = [__conf["name-get"], __conf["name-post"], __conf["name-patch"], __conf["name-put"]]
+    all_cmds = ["get", "post", "patch", "put", "delete", "head", "wol"]
+    rq_ids = [__conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"], __conf["id-delete"], __conf["id-head"]]
+    rq_names = [__conf["name-get"], __conf["name-post"], __conf["name-patch"], __conf["name-put"], __conf["name-delete"], __conf["name-head"]]
 
     @staticmethod
     def get(key):

@@ -2,7 +2,7 @@
 
 ## ⚠️ WARNING ⚠️
 
-### Disclaimer: This software is at an early stage of development and may contain serious bugs that could affect system stability. Please use it at your own risk!
+### Disclaimer: This software may contain serious bugs that could affect system stability. Please use it at your own risk!
 
 ##
 
@@ -13,16 +13,17 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 
 ### Supported features
 
-- Send http(s) get, post, patch & put requests to a specified url
-  - Add form data as key/value pairs (see "Usage" section below)
-  - Define a global custom timeout and deactivate ssl certificate verification during the integration setup
+- Send http get, post, patch, put, delete & head requests to a specified url
+  - Add form or json payload (see [adding payload data](#adding-payload-data))
+  - Define a global custom timeout (default is 2 seconds)
+  - Deactivate ssl/tls verification for self signed certificates
 - Send Wake on LAN magic packets to a specified mac address, ip (v4/v6) or hostname (ipv4 only)
   - Discover the mac address from an ip address or a hostname may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
 
 
 ### Planned features
 
-- Support for sending json and xml data in the request body
+- Support for sending raw payload data (e.g. xml) in the http request body
 
 *Planned improvements are labeled with #TODO in the code*
 
@@ -45,15 +46,21 @@ Choose one or more HTTP request method entities from the integration setup and a
 
 #### Expected server response
 
-For http requests your server needs to respond with a *200 OK* status or any other informational or redirection http status codes (100s, 200s or 300s). In case of a client or server error (400s or 500s) the command will fail on the remote and the error message and status code will be shown in the integration log.
+For http requests your server needs to respond with a *200 OK* status or any other informational or redirection http status codes (100s, 200s or 300s). If the server's response content is not empty it will be shown in the integration log. In case of a client or server error (400s or 500s) the command will fail on the remote and the error message and status code will be shown in the integration log.
 
-#### Add form data
+#### Adding payload data
 
-Optional form data in the request body as key/value pairs can be added with a paragraph character (§) as a separator like this:
-- https://httpbin.org/post§key1=value1,key2=value2
+Optional payload data can be added to the request body with a specific separator charter
 
-Note that if your url contains a paragraph character you need to url-encode it first (%C2%A7, see https://www.urlencoder.io)
+| Content type                      | Separator     | Example                                                      | Notes |
+|-----------------------------------|---------------|--------------------------------------------------------------|-------|
+| `application/x-www-form-urlencoded` | `§` (paragraph) |  `https://httpbin.org/post§key1=value1,key2=value2`            | Multiple values for a single key are currently not supported. 
+| `application/json `                 | `\|` (pipe)     |  `https://httpbin.org/post\|{"key1":"value1","key2":"value2"}` |
+| `application/xml`                   | `^` (caret)     |  `https://httpbin.org/post^<Tests Id="01"><Test TestId="01"><Name>Command name</Name></Test></Tests>` |
 
+**Only one payload type per requests is supported**
+
+If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with https://www.urlencoder.io)
 
 ## Installation
 

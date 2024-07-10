@@ -3,6 +3,8 @@
 """Module that includes the media player command assigner that assigns a requests or wol command depending on the passed entity id"""
 
 import logging
+import json
+from json import JSONDecodeError
 from typing import Any
 from re import match, IGNORECASE
 from ipaddress import ip_address, IPv4Address, IPv6Address, AddressValueError
@@ -13,6 +15,8 @@ from requests import get as rq_get
 from requests import put as rq_put
 from requests import patch as rq_patch
 from requests import post as rq_post
+from requests import delete as rq_delete
+from requests import head as rq_head
 from requests import codes as http_codes
 from requests import exceptions as rq_exceptions
 from wakeonlan import send_magic_packet
@@ -95,22 +99,47 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
             #Needed as hyphens can not be used in function and variable names and also to keep the existing entity IDs to prevent activity/macro reconfiguration.
             rq_cmd = entity_id.replace("http-", "rq_")
-            data = ""
+
+            user_agent = config.Setup.get("rq_user_agent")
+            headers = {"User-Agent" : user_agent} #TODO Add integration version number to user agent
 
             _LOG.debug("rq_cmd: " + rq_cmd + " , rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify))
 
             try:
+
                 if rq_ssl_verify is False:
-                    #Deactivate SSL verify warning message from requests
+                    #Deactivate SSL verify warning message
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
                 if "§" in cmd_param:
-                    url, param = cmd_param.split("§")
-                    #Create python dictionary for requests data parameter from string input received from the remote
-                    data = dict(pair.split("=") for pair in param.split(","))
+                    _LOG.info("Passed parameter contains form data")
+                    url, form_string = cmd_param.split("§")
+                    #Convert passed string input into Python dict for requests
+                    form_dict = dict(pair.split("=") for pair in form_string.split(",")) #TODO Support multiple values for a single key. Will probably require a syntax change
+                    #Utilise globals()[] to be able to use a variable as a function name
+                    r = globals()[rq_cmd](url, data=form_dict, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
+
+                elif "|" in cmd_param:
+                    _LOG.info("Passed parameter contains json data")
+                    url, json_string = cmd_param.split("|")
+                    try:
+                        json_dict = json.loads(json_string)
+                    except JSONDecodeError as e:
+                        _LOG.error("JSONDecodeError: " + str(e))
+                        return ucapi.StatusCodes.CONFLICT
+                    r = globals()[rq_cmd](url, json=json_dict, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
+
+                elif "^" in cmd_param:
+                    _LOG.info("Passed parameter contains xml data")
+                    url, xml_string = cmd_param.split("^")
+                    headers.update({"Content-Type" : "application/xml"})
+                    _LOG.debug(headers)
+                    r = globals()[rq_cmd](url, data=xml_string, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
+
                 else:
                     url = cmd_param
-                #Need to use globals()[] to use a variable as a function name
-                r = globals()[rq_cmd](url, data, timeout=rq_timeout, verify=rq_ssl_verify)
+                    r = globals()[rq_cmd](url, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
+
             except rq_exceptions.Timeout as t:
                 _LOG.error("Got timeout from Python requests module:")
                 _LOG.error(t)
@@ -123,7 +152,9 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
             if r.status_code == http_codes.ok:
                 _LOG.info("Sent " + entity_id + " request to: " + url)
                 if r.text != "":
-                    _LOG.debug(r.text)
+                    _LOG.debug("Server response: " + r.text)
+                else:
+                    _LOG.debug("Received 200 - OK status code")
                 return ucapi.StatusCodes.OK
 
             try:
@@ -133,11 +164,15 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
                 _LOG.error(e)
                 if 400 <= r.status_code <= 499:
                     if r.status_code == 404:
+                        if r.text != "":
+                            _LOG.debug("Server response: " + r.text)
                         return ucapi.StatusCodes.NOT_FOUND
                     return ucapi.StatusCodes.BAD_REQUEST
                 return ucapi.StatusCodes.SERVER_ERROR
             if r.raise_for_status() is None:
                 _LOG.info("Received informational or redirection http status code: " + str(r.status_code))
+                if r.text != "":
+                    _LOG.debug("Server response: " + r.text)
                 return ucapi.StatusCodes.OK
 
         else:

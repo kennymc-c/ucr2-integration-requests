@@ -15,8 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In preparation to the upcoming custom integration upload feature setup.json has been renamed to driver.json and moved to the root of the repository to adapt to the official UC integrations
  
 ### Added
+- Support for HTTP delete and head requests
+- Support for adding json or xml payload data to a http request (see Readme)
 - The wake-on-lan entity now supports an ipv4/v6 address or a hostname (ipv4 only) as a parameter
   - Discover the mac address from an ip address or a hostname may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported). Docker containers need to be run in the host network (`--net=host`)
+- Add custom user agent (uc-intg-requests)
 - Add build.yml Github action to automatically build a self-contained binary of the integration and create a release draft with the current driver version as a tag/name
 
 ### Changed
