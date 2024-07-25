@@ -17,7 +17,8 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
   - Add form or json payload (see [adding payload data](#adding-payload-data))
   - Define a global custom timeout (default is 2 seconds)
   - Deactivate ssl/tls verification for self signed certificates
-- Send Wake on LAN magic packets to a specified mac address, ip (v4/v6) or hostname (ipv4 only)
+- Send wake-on-lan magic packets to a specified mac address, ip (v4/v6) or hostname (ipv4 only)
+  - Using an ip address or hostname is not supported when running the integration on the remote due to sandbox limitations
   - Discover the mac address from an ip address or a hostname may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
 
 
@@ -66,13 +67,23 @@ If your actual url contains one or more of the above separators or other special
 
 ### Run on the remote
 
+_This requires firmware 1.9.1 or newer_
+
 #### Download integration
 
-Download the tar.gz archive in the assets section from the [latest release](https://github.com/kennymc-c/ucr2-integration-requests/releases/latest)
+Download the tar.gz archive in the assets section from the [latest release](/releases/latest)
 
-#### Upload to the remote
+#### Install driver on the remote
 
-TBA
+The driver installation is currently only possible via the Core API and still in beta. The configuration file is not included in backups.
+
+```shell
+curl --location 'http://$IP/api/intg/install' \
+--user 'web-configurator:$PIN' \
+--form 'file=@"uc-intg-requests-$VERSION-aarch64.tar.gz"'
+```
+
+UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79)
 
 ### Run as an external integration on a separate server
 
@@ -96,7 +107,7 @@ python3 intg-requests/driver.py
 
 #### Docker container
 
-For the mDNS advertisement (auto discovery of the integration) to work correctly and to be able to use wake-on-lan with an ip address or a hostname instead of a mac address the integration needs to be run in the host network (`--net=host`). You can also set the websocket listening port with the environment variable `UC_INTEGRATION_HTTP_PORT`, set the listening interface with `UC_INTEGRATION_INTERFACE` or change the default debug log level with `UC_LOG_LEVEL`. See available [environment variables](https://github.com/unfoldedcircle/integration-python-library#environment-variables)
+For the mDNS advertisement to work correctly it's advised to start the integration in the host network (`--net=host`). You can also set the websocket listening port with the environment variable `UC_INTEGRATION_HTTP_PORT`, set the listening interface with `UC_INTEGRATION_INTERFACE` or change the default debug log level with `UC_LOG_LEVEL`. See available [environment variables](https://github.com/unfoldedcircle/integration-python-library#environment-variables)
 in the Python integration library.
 
 All data is mounted to `/usr/src/app`:
@@ -105,15 +116,24 @@ All data is mounted to `/usr/src/app`:
 docker run --net=host -n 'ucr2-integration-requests' -v './ucr2-integration-requests':'/usr/src/app/':'rw' 'python:3.11' /usr/src/app/docker-entry.sh
 ```
 
-## Build self-contained binary for Remote Two
+## Build
 
-*Note: Uploading custom integrations to the remote is not yet supported with the current firmware. The status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79)*
+Instead of downloading the integration driver archive from the release assets you can also build and create the needed distribution binary and tar.gz archive yourself.
 
-Unfolded Circle recommends to create a single binary file that has everything in it as python on embedded systems is a nightmare.
+For Python based integrations Unfolded Circle recommends to use `pyinstaller` to create a distribution binary that has everything in it, including the Python runtime and all required modules and native libraries.
 
-To do that, we need to compile it on the target architecture as `pyinstaller` does not support cross compilation.
+### Build distribution binary
 
-### x86-64 Linux
+First we need to compile the driver on the target architecture because `pyinstaller` does not support cross compilation.
+
+The `--onefile` option to create a one-file bundled executable should be avoided:
+- Higher startup cost, since the wrapper binary must first extract the archive.
+- Files are extracted to the /tmp directory on the device, which is an in-memory filesystem.  
+  This will further reduce the available memory for the integration drivers!
+
+We use the `--onedir` option instead.
+
+#### x86-64 Linux
 
 On x86-64 Linux we need Qemu to emulate the aarch64 target platform:
 
@@ -129,13 +149,14 @@ docker run --rm --name builder \
     --platform=aarch64 \
     --user=$(id -u):$(id -g) \
     -v "$PWD":/workspace \
-    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6  \
+    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6-0.2.0  \
     bash -c \
-      "python -m pip install -r requirements.txt && \
-      pyinstaller --clean --onefile --name intg-requests intg-requests/driver.py"
+      "cd /workspace && \
+      python -m pip install -r requirements.txt && \
+      pyinstaller --clean --onedir --name int-requests intg-requests/driver.py"
 ```
 
-### aarch64 Linux / Mac
+#### aarch64 Linux / Mac
 
 On an aarch64 host platform, the build image can be run directly (and much faster):
 
@@ -143,10 +164,24 @@ On an aarch64 host platform, the build image can be run directly (and much faste
 docker run --rm --name builder \
     --user=$(id -u):$(id -g) \
     -v "$PWD":/workspace \
-    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6  \
+    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6-0.2.0  \
     bash -c \
-      "python -m pip install -r requirements.txt && \
-      pyinstaller --clean --onefile --name intg-requests intg-requests/driver.py"
+      "cd /workspace && \
+      python -m pip install -r requirements.txt && \
+      pyinstaller --clean --onedir --name intg-requests intg-requests/driver.py"
+```
+
+### Create tar.gz archive
+
+Now we need to create the tar.gz archive that can be installed on the remote and contains the driver.json metadata file and the driver distribution binary inside the bin directory
+
+```shell
+mkdir -p artifacts/bin
+mv dist/intg-requests/* artifacts/bin
+mv artifacts/bin/intg-requests artifacts/bin/driver
+cp driver.json artifacts/
+tar czvf uc-intg-requests-aarch64.tar.gz -C artifacts .
+rm -r dist build artifacts intg-requests.spec
 ```
 
 ## Versioning

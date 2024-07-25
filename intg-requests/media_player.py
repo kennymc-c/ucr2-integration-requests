@@ -24,6 +24,12 @@ from getmac import get_mac_address
 
 import config
 
+#Debugging
+from http.client import HTTPConnection
+HTTPConnection.debuglevel = 1
+
+
+
 _LOG = logging.getLogger(__name__)
 
 
@@ -47,30 +53,53 @@ def wol(param: str):
             _LOG.debug("Entered WoL parameter could be a hostname. Using getmac to discover mac address")
 
     if param_type == "ip":
-        try:
-            IPv4Address(param)
-            param = get_mac_address(ip=param)
-            _LOG.info("Got mac address from entered ipv4 ip: " + param)
-        except AddressValueError:
-            try:
-                IPv6Address(param)
-                param = get_mac_address(ip6=param)
-                _LOG.info("Got mac address from entered ipv6 ip: " + param)
-            except AddressValueError as v:
-                raise ValueError(v) from v
-    if param_type == "hostname":
-        param = get_mac_address(hostname=param)
-        if param is not None:
-            _LOG.info("Got mac address from entered hostname: " + param)
+        if config.Setup.get("bundle_mode"):
+            raise OSError("Using an IP address for wake-on-lan is not supported when running the integration on the remote due to sandbox limitations. Please use the mac address instead")
         else:
-            raise ValueError()
+            try:
+                IPv4Address(param)
+                try:
+                    param = get_mac_address(ip=param)
+                except Exception as e:
+                    _LOG.debug(e)
+                if param is not None:
+                    _LOG.info("Got mac address from entered ipv4 ip: " + param)
+                if param == "" or param is None:
+                    raise OSError("Could not convert parameter with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
+    Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
+            except AddressValueError:
+                try:
+                    IPv6Address(param)
+                    try:
+                        param = get_mac_address(ip6=param)
+                    except Exception as e:
+                        _LOG.debug(e)
+                    if param is not None:
+                        _LOG.info("Got mac address from entered ipv6 ip: " + param)
+                    if param == "" or param is None:
+                        raise OSError("Could not convert parameter with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
+    Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
+                except AddressValueError as v:
+                    raise ValueError(v) from v
+
+    if param_type == "hostname":
+        if config.Setup.get("bundle_mode"):
+            raise OSError("Using a hostname for wake-on-lan is not supported when running the integration on the remote due to sandbox limitations. Please use the mac address instead")
+        else:
+            try:
+                param = get_mac_address(hostname=param)
+            except Exception as e:
+                _LOG.debug(e)
+            if param is not None:
+                _LOG.info("Got mac address from entered hostname: " + param)
+            if param == "" or param is None:
+                raise OSError("Could not convert parameter with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
+    Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
 
     if param == "00:00:00:00:00:00":
         raise OSError("Got an invalid mac address. Is the ip or host in your local network? \
 Discover the mac address from an ip address or a hostname may not work on all systems. \
 Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
-    if param is None:
-        raise AddressValueError("")
 
     try:
         send_magic_packet(param)
@@ -192,7 +221,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
                 return ucapi.StatusCodes.BAD_REQUEST
             except OSError as o:
                 _LOG.error(o)
-                return ucapi.StatusCodes.BAD_REQUEST
+                return ucapi.StatusCodes.CONFLICT
             except Exception as e:
                 _LOG.error("Got error message from Python wakeonlan module:")
                 _LOG.error(e)

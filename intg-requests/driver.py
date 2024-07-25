@@ -2,10 +2,11 @@
 
 """Main driver file. Run this module to start the integration driver"""
 
+import os
+import sys
 import asyncio
 import logging
 from typing import Any
-import os
 
 import ucapi
 
@@ -160,12 +161,11 @@ async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
 
 
 
-async def main():
-    """Main function that gets logging from all sub modules and starts the driver"""
-    logging.basicConfig(format="%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+def setup_logger():
+    """Get logger from all modules"""
 
     level = os.getenv("UC_LOG_LEVEL", "DEBUG").upper()
-    logging.getLogger("getmac").setLevel(level)
+
     logging.getLogger("ucapi.api").setLevel(level)
     logging.getLogger("ucapi.entities").setLevel(level)
     logging.getLogger("ucapi.entity").setLevel(level)
@@ -173,8 +173,31 @@ async def main():
     logging.getLogger("media_player").setLevel(level)
     logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
+    logging.getLogger("getmac").setLevel(level)
+    requestslogger = logging.getLogger("requests.packages.urllib3").setLevel(level)
+    #requestslogger.propagate = True
 
-    _LOG.debug("Starting driver")
+
+
+async def main():
+    """Main function that gets logging from all sub modules and starts the driver"""
+
+    #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format and config file path
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+
+        logging.basicConfig(format="%(name)-14s %(levelname)-8s %(message)s")
+        setup_logger()
+
+        _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
+        config.Setup.set("bundle_mode", True)
+
+        cfg_path = os.environ["UC_CONFIG_HOME"] + "/config.json"
+        config.Setup.set("cfg_path", cfg_path)
+        _LOG.info("The configuration is stored in " + cfg_path)
+
+    else:
+        logging.basicConfig(format="%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        setup_logger()
 
     await setup.init()
     await startcheck()

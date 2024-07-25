@@ -10,19 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 *Changes in the next release*
 
 ### Breaking changes
-- The configuration json file is now created in the root of the repository. Existing users have to move the config.json file from the intg-requests directory
-- The working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has been adjusted.
-- In preparation to the upcoming custom integration upload feature setup.json has been renamed to driver.json and moved to the root of the repository to adapt to the official UC integrations
+- **🎉 This integration can now also run on the remote. From now on each release will have a tar.gz file attached that can be installed on the remote** (see [Run on the remote](/README.md#Run-on-the-remote))
+- When running as an external integration the working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has been adjusted. The configuration json file is therefore now created in the root of the integration directory. Existing users have to move config.json from the intg-requests directory
  
 ### Added
 - Support for HTTP delete and head requests
-- Support for adding json or xml payload data to a http request (see Readme)
-- The wake-on-lan entity now supports an ipv4/v6 address or a hostname (ipv4 only) as a parameter
+- Support for adding json or xml payload data to a http request (see [Run on the remote](/README.md#adding-payload-data))
+- The wake-on-lan entity now supports an ipv4/v6 address or a hostname (ipv4 only) as a parameter when running as an external integration
+  - This feature is not supported when running the integration on the remote due to sandbox limitations
   - Discover the mac address from an ip address or a hostname may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported). Docker containers need to be run in the host network (`--net=host`)
-- Add custom user agent (uc-intg-requests)
 - Add build.yml Github action to automatically build a self-contained binary of the integration and create a release draft with the current driver version as a tag/name
 
 ### Changed
+- Due to the custom integration upload feature setup.json has been renamed to driver.json and moved to the root of the repository
+- Add custom user agent for http requests (uc-intg-requests)
 - Corrected the semantic version scheme in driver.json (x.x to x.x.x)
 
 
