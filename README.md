@@ -67,7 +67,7 @@ If your actual url contains one or more of the above separators or other special
 
 ### Run on the remote
 
-_This requires firmware 1.9.1 or newer_
+_This requires firmware 1.9.2 or newer (only from this version onwards the necessary libraries for this integration are included)_
 
 #### Download integration
 
