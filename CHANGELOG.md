@@ -10,20 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 *Changes in the next release*
 
 ### Breaking changes
-- **🎉 This integration can now also run on the remote. From now on each release will have a tar.gz file attached that can be installed on the remote** (see [Run on the remote](/README.md#Run-on-the-remote))
+- **🎉 This integration can now also run on the remote. From now on each release will have a tar.gz file attached that can be installed on the remote** (see [Run on the remote as a custom integration driver](/README.md#Run-on-the-remote-as-a-custom-integration-driver))
   - This requires beta firmware 1.9.2 or newer. Only from this version onwards the necessary libraries for this integration are included
-- When running as an external integration the working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has been adjusted. The configuration json file is therefore now created in the root of the integration directory. Existing users have to move config.json from the intg-requests directory
+- When running as an external integration driver the working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has been adjusted. The configuration json file is therefore now created in the root of the integration directory. Existing users have to move config.json from the intg-requests directory
  
 ### Added
 - Support for HTTP delete and head requests
-- Support for adding json or xml payload data to a http request (see [Run on the remote](/README.md#adding-payload-data))
+- Support for adding json or xml payload data to a http request (see [Adding payload data](/README.md#adding-payload-data))
 - The wake-on-lan entity now supports an ipv4/v6 address or a hostname (ipv4 only) as a parameter when running as an external integration
   - This feature is not supported when running the integration on the remote due to sandbox limitations
   - Discover the mac address from an ip address or a hostname may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported). Docker containers need to be run in the host network (`--net=host`)
 - Add build.yml Github action to automatically build a self-contained binary of the integration and create a release draft with the current driver version as a tag/name
 
 ### Changed
-- Due to the custom integration upload feature setup.json has been renamed to driver.json and moved to the root of the repository
+- Due to the custom integration driver upload feature setup.json has been renamed to driver.json and moved to the root of the repository
 - Add custom user agent for http requests (uc-intg-requests)
 - Corrected the semantic version scheme in driver.json (x.x to x.x.x)
 

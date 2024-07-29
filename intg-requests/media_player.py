@@ -8,7 +8,7 @@ from json import JSONDecodeError
 from typing import Any
 from re import match, IGNORECASE
 from ipaddress import ip_address, IPv4Address, IPv6Address, AddressValueError
-import urllib3 #Needed to deactivate requests ssl verify warning message
+import urllib3 #Needed to optionally deactivate requests ssl verify warning message
 
 import ucapi
 from requests import get as rq_get
@@ -23,12 +23,6 @@ from wakeonlan import send_magic_packet
 from getmac import get_mac_address
 
 import config
-
-#Debugging
-from http.client import HTTPConnection
-HTTPConnection.debuglevel = 1
-
-
 
 _LOG = logging.getLogger(__name__)
 

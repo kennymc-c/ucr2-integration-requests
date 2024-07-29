@@ -174,8 +174,6 @@ def setup_logger():
     logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
     logging.getLogger("getmac").setLevel(level)
-    requestslogger = logging.getLogger("requests.packages.urllib3").setLevel(level)
-    #requestslogger.propagate = True
 
 
 

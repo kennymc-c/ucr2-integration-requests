@@ -65,17 +65,17 @@ If your actual url contains one or more of the above separators or other special
 
 ## Installation
 
-### Run on the remote
+### Run on the remote as a custom integration driver
 
 _This requires firmware 1.9.2 or newer (only from this version onwards the necessary libraries for this integration are included)_
 
-#### Download integration
+#### Download integration driver
 
 Download the tar.gz archive in the assets section from the [latest release](/releases/latest)
 
-#### Install driver on the remote
+#### Install custom integration driver on the remote
 
-The driver installation is currently only possible via the Core API and still in beta. The configuration file is not included in backups.
+The custom integration driver installation is currently only possible via the Core API and still in beta. The configuration file is not included in backups.
 
 ```shell
 curl --location 'http://$IP/api/intg/install' \
@@ -85,7 +85,7 @@ curl --location 'http://$IP/api/intg/install' \
 
 UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79)
 
-### Run as an external integration on a separate server
+### Run on a separate device as an external integration driver 
 
 #### Bare metal/VM
 
