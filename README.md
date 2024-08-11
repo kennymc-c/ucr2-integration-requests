@@ -1,12 +1,12 @@
-# HTTP Get/Post/Put/Patch & Wake on LAN Integration for Unfolded Circle Remote Two and Remote 3
+# HTTP Requests & Wake on LAN Integration for Unfolded Circle Remote Devices
 
 ## ⚠️ WARNING ⚠️
 
-### Disclaimer: This software may contain serious bugs that could affect system stability. Please use it at your own risk!
+### Disclaimer: This software may contain bugs that could affect system stability. Please use it at your own risk!
 
 ##
 
-Integration for Unfolded Circle [Remote Two](https://www.unfoldedcircle.com/remote-two) and [Remote 3](https://www.unfoldedcircle.com) running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) to send http requests and wake-on-lan magic packets.
+Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently [Remote Two](https://www.unfoldedcircle.com/remote-two) and the upcoming [Remote 3](https://www.unfoldedcircle.com)) to send http requests and wake-on-lan magic packets.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests), [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) and [getmac](https://github.com/GhostofGoes/getmac).
 
