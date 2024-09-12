@@ -80,10 +80,11 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         try:
             rq_timeout = config.Setup.get("rq_timeout")
             rq_ssl_verify = config.Setup.get("rq_ssl_verify")
+            rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
         except ValueError as v:
             _LOG.error(v)
 
-        _LOG.debug("Currently stored - rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify))
+        _LOG.debug("Currently stored - rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget))
 
         return ucapi.RequestUserInput(
             {
@@ -122,6 +123,17 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
                                         }
                             },
                 },
+                                {
+                    "id": "rq_fire_and_forget",
+                    "label": {
+                        "en": "Ignore HTTP requests errors (fire and forget):",
+                        "de": "Fehler bei HTTP-Anfragen ignorieren (Fire and Forget):"
+                        },
+                    "field": {"checkbox": {
+                                        "value": rq_fire_and_forget
+                                        }
+                            },
+                },
             ],
         )
 
@@ -148,6 +160,7 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
 
     rq_timeout = msg.input_values["rq_timeout"]
     rq_ssl_verify = msg.input_values["rq_ssl_verify"]
+    rq_fire_and_forget = msg.input_values["rq_fire_and_forget"]
 
     rq_timeout = int(rq_timeout)
     try:
@@ -174,6 +187,22 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
             config.Setup.set("setup_complete", False)
             return ucapi.SetupError()
         _LOG.info("HTTP SSL verification deactivated")
+
+    if rq_fire_and_forget == "true": #Boolean in quotes as all values are returned as strings
+        try:
+            config.Setup.set("rq_fire_and_forget", True)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
+        _LOG.info("Fire and forget mode activated. Always return OK to the remote")
+    else:
+        try:
+            config.Setup.set("rq_fire_and_forget", False)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
 
     if not config.Setup.get("setup_reconfigure"):
         for cmd in config.Setup.all_cmds:

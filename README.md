@@ -14,19 +14,19 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 ### Supported features
 
 - Send http get, post, patch, put, delete & head requests to a specified url
-  - Add form or json payload (see [adding payload data](#adding-payload-data))
+  - Add form, json or xml payload (see [adding payload data](#adding-payload-data))
   - Define a global custom timeout (default is 2 seconds)
   - Deactivate ssl/tls verification for self signed certificates
+  - Option to ignore HTTP requests errors and always return a OK/200 status code to the remote. Helpful if the server doesn't send any response or closes the connection after a command is received (fire and forget). The error message will still be logged but at debug instead of error level
 - Send wake-on-lan magic packets to a specified mac address, ip (v4/v6) or hostname (ipv4 only)
-  - Using an ip address or hostname is not supported when running the integration on the remote due to sandbox limitations
-  - Discover the mac address from an ip address or a hostname may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
+  - Discover the mac address from an ip address or a hostname is not supported when running the integration on the remote due to sandbox limitations and may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
 
 
 ### Planned features
 
-- Support for sending raw payload data (e.g. xml) in the http request body
+- Support for custom http headers
 
-*Planned improvements are labeled with #TODO in the code*
+*Additional smaller planned improvements are labeled with #TODO in the code*
 
 
 ## Configuration

@@ -117,6 +117,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
 
     rq_timeout = config.Setup.get("rq_timeout")
     rq_ssl_verify = config.Setup.get("rq_ssl_verify")
+    rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
 
     if entity_id in config.Setup.rq_ids:
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
@@ -126,7 +127,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
             user_agent = config.Setup.get("rq_user_agent")
             headers = {"User-Agent" : user_agent} #TODO Add integration version number to user agent
 
-            _LOG.debug("rq_cmd: " + rq_cmd + " , rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify))
+            _LOG.debug("rq_cmd: " + rq_cmd + " , rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget))
 
             try:
 
@@ -163,11 +164,16 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
                     url = cmd_param
                     r = globals()[rq_cmd](url, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
 
+
             except rq_exceptions.Timeout as t:
-                _LOG.error("Got timeout from Python requests module:")
+                _LOG.error("Ran into a timeout from Python requests module:")
                 _LOG.error(t)
                 return ucapi.StatusCodes.TIMEOUT
             except Exception as e:
+                if rq_fire_and_forget is True:
+                    _LOG.info("Got a requests error but fire and forget mode is active. Return 200/OK status code to the remote")
+                    _LOG.debug("Error: " + str(e))
+                    return ucapi.StatusCodes.OK
                 _LOG.error("Got error message from Python requests module:")
                 _LOG.error(e)
                 return ucapi.StatusCodes.CONFLICT

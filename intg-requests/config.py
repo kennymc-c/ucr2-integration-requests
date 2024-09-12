@@ -21,6 +21,7 @@ class Setup:
         "rq_timeout": 2,
         "rq_ssl_verify": True,
         "rq_user_agent": "uc-intg-requests",
+        "rq_fire_and_forget": False,
         "id-get": "http-get",
         "name-get": "HTTP Get",
         "id-post": "http-post",
@@ -36,8 +37,8 @@ class Setup:
         "id-wol": "wol",
         "name-wol": "Wake on LAN"
     }
-    __setters = ["standby", "setup_complete", "setup_reconfigure", "rq_timeout", "rq_ssl_verify", "bundle_mode", "cfg_path"]
-    __storers = ["setup_complete", "rq_timeout", "rq_ssl_verify"] #Skip runtime only related values in config file
+    __setters = ["standby", "setup_complete", "setup_reconfigure", "rq_timeout", "rq_ssl_verify", "rq_fire_and_forget", "bundle_mode", "cfg_path"]
+    __storers = ["setup_complete", "rq_timeout", "rq_ssl_verify", "rq_fire_and_forget"] #Skip runtime only related values in config file
 
     all_cmds = ["get", "post", "patch", "put", "delete", "head", "wol"]
     rq_ids = [__conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"], __conf["id-delete"], __conf["id-head"]]
@@ -129,6 +130,13 @@ class Setup:
                 else:
                     _LOG.info("Skip loading http ssl verification flag as it has not been changed during setup. \
                     Default value " + str(Setup.get("rq_ssl_verify")) + " will be used")
+
+                if "rq_fire_and_forget" in configfile:
+                    Setup.__conf["rq_fire_and_forget"] = configfile["rq_fire_and_forget"]
+                    _LOG.info("Loaded fire_and_forget: " + str(configfile["rq_fire_and_forget"]) + " into runtime storage from " + Setup.__conf["cfg_path"])
+                else:
+                    _LOG.info("Skip loading fire_and_forget as it has not been changed during setup. \
+                    Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
 
         else:
             _LOG.info(Setup.__conf["cfg_path"] + " does not exist (yet). Please start the setup process")
