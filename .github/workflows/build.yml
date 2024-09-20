@@ -1,0 +1,114 @@
+# Manual triggered GitHub action to build a distribution binary of the Python integration driver and attach it to a release draft including a hash file
+---
+  name: "Build & Draft Release"
+  
+  on:
+    workflow_dispatch:
+    push:
+      branches: dev
+  
+  env:
+    INTG_NAME: requests
+    # Python version to use in the builder image. See https://hub.docker.com/r/unfoldedcircle/r2-pyinstaller for possible versions.
+    PYTHON_VER: 3.11.6-0.2.0
+  
+  jobs:
+    build:
+      name: Build Release
+      runs-on: ubuntu-latest
+      #Save version to env output variable to be able to use it in the following release job as a tag
+      outputs:
+        version: ${{ steps.get-version-and-id.outputs.VERSION }}
+        driver_id: ${{ steps.get-version-and-id.outputs.DRIVER_ID }}
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+          with:
+            # History of 200 should be more than enough to calculate commit count since last release tag
+            fetch-depth: 200
+            # Only for testing. Delete when merging with main branch
+            ref: dev 
+  
+        - name: Get version and id
+          #Id needed for env output variable
+          id: get-version-and-id
+          run: |
+            echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
+            echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
+            # Save to Github output to later use it in Create Release job
+            echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
+            echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
+  
+        - name: Build
+          run: |
+            sudo apt-get update && sudo apt-get install -y qemu binfmt-support qemu-user-static
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+            echo "Starting pyinstaller build"
+            docker run --rm --name builder \
+              --platform=aarch64 \
+              --user=$(id -u):$(id -g) \
+              -v ${GITHUB_WORKSPACE}:/workspace \
+              docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
+              bash -c \
+              "cd /workspace && \
+                python -m pip install -r requirements.txt && \
+                pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all zeroconf intg-${INTG_NAME}/driver.py"
+  
+        - name: Prepare artifacts
+          shell: bash
+          run: |
+            mkdir -p artifacts/bin
+            mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
+            mv artifacts/bin/intg-${{ env.DRIVER_ID }} artifacts/bin/driver
+            cp driver.json artifacts/
+            echo "ARTIFACT_NAME=uc-intg-${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
+            
+        - name: Create upload artifact archive
+          shell: bash
+          run: | 
+            tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
+            ls -lah
+            
+        - uses: actions/upload-artifact@v4
+          id: upload_artifact
+          with:
+            name: ${{ env.ARTIFACT_NAME }}
+            path: ${{ env.ARTIFACT_NAME }}.tar.gz
+            if-no-files-found: error
+            retention-days: 3
+              
+    release:
+      name: Create Release
+      runs-on: ubuntu-latest
+      needs: [build]
+      permissions:
+        contents: write
+  
+      steps:
+        - name: Download build artifacts
+          uses: actions/download-artifact@v4
+  
+        - name: Extract build archives from downloaded files
+          run: |
+            ls -R
+            # extract tar.gz build archives from downloaded artifacts
+            # (wrapped in tar from actions/upload-artifact, then extracted into a directory by actions/download-artifact)
+            for D in * 
+              do if [ -d "${D}" ]; then
+                mv $D/* ./
+              fi
+            done;
+  
+        - name: Create hash file
+          run: |
+            for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{needs.build.outputs.driver_id}}.hash; done;
+  
+        - name: Create release draft
+          uses: ncipollo/release-action@v1
+          with:
+            artifacts: "*.tar.gz,${{needs.build.outputs.driver_id}}.hash"
+            draft: true
+            generateReleaseNotes: true
+            artifactErrorsFailBuild: true
+            tag: v${{needs.build.outputs.version}}
+  

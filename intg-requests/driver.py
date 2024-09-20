@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
+"""Main driver file. Run this module to start the integration driver"""
+
+import os
+import sys
 import asyncio
 import logging
 from typing import Any
 
 import ucapi
-import os
 
 import config
 import media_player
@@ -23,18 +26,18 @@ async def startcheck():
     Called at the start of the integration driver to load the config file into the runtime storage and add a media player entity for all configured cmds
     """
     try:
-        config.setup.load()
+        config.Setup.load()
     except OSError as o:
         _LOG.critical(o)
         _LOG.critical("Stopping integration driver")
-        raise SystemExit(0)
+        raise SystemExit(0) from o
 
-    if config.setup.get("setup_complete"):
+    if config.Setup.get("setup_complete"):
         await setup.add_mp_all()
 
 
 
-async def add_mp(id: str, name: str):
+async def add_mp(entity_id: str, entity_name: str):
     # Only works when in driver.py. When in media_player.py the response to get_available entities is an empty list
     """
     Creates the media player entity definition and adds the entity to the remote via the api
@@ -44,8 +47,8 @@ async def add_mp(id: str, name: str):
     """
 
     definition = ucapi.MediaPlayer(
-        id, 
-        name, 
+        entity_id,
+        entity_name,
         [ucapi.media_player.Features.SELECT_SOURCE],
         attributes={},
         cmd_handler=mp_cmd_handler
@@ -53,7 +56,7 @@ async def add_mp(id: str, name: str):
 
     api.available_entities.add(definition)
 
-    _LOG.info("Added media player entity with id " + id + " and name " + name)
+    _LOG.info("Added media player entity with id " + entity_id + " and name " + entity_name)
 
 
 
@@ -69,11 +72,11 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
     :return: status of the command
     """
 
-    if _params == None:
+    if _params is None:
         _LOG.info(f"Received {cmd_id} command for {entity.id}")
     else:
         _LOG.info(f"Received {cmd_id} command with parameter {_params} for entity id {entity.id}")
-    
+
     return media_player.mp_cmd_assigner(entity.id, cmd_id, _params)
 
 
@@ -112,8 +115,8 @@ async def on_r2_enter_standby() -> None:
     _LOG.info("Received enter standby event message from remote")
 
     _LOG.debug("Set config.R2_IN_STANDBY to True")
-    config.setup.set("standby", True)
-    
+    config.Setup.set("standby", True)
+
 
 
 @api.listens_to(ucapi.Events.EXIT_STANDBY)
@@ -126,7 +129,7 @@ async def on_r2_exit_standby() -> None:
     _LOG.info("Received exit standby event message from remote")
 
     _LOG.debug("Set config.R2_IN_STANDBY to False")
-    config.setup.set("standby", False)
+    config.Setup.set("standby", False)
 
 
 
@@ -141,7 +144,7 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
     """
     _LOG.info("Received subscribe entities event for entity ids: " + str(entity_ids))
 
-    config.setup.set("standby", False)
+    config.Setup.set("standby", False)
 
 
 
@@ -158,11 +161,11 @@ async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
 
 
 
-async def main():
-
-    logging.basicConfig(format='%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+def setup_logger():
+    """Get logger from all modules"""
 
     level = os.getenv("UC_LOG_LEVEL", "DEBUG").upper()
+
     logging.getLogger("ucapi.api").setLevel(level)
     logging.getLogger("ucapi.entities").setLevel(level)
     logging.getLogger("ucapi.entity").setLevel(level)
@@ -170,9 +173,30 @@ async def main():
     logging.getLogger("media_player").setLevel(level)
     logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
+    logging.getLogger("getmac").setLevel(level)
 
-    _LOG.debug("Starting driver")
-    
+
+
+async def main():
+    """Main function that gets logging from all sub modules and starts the driver"""
+
+    #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format and config file path
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+
+        logging.basicConfig(format="%(name)-14s %(levelname)-8s %(message)s")
+        setup_logger()
+
+        _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
+        config.Setup.set("bundle_mode", True)
+
+        cfg_path = os.environ["UC_CONFIG_HOME"] + "/config.json"
+        config.Setup.set("cfg_path", cfg_path)
+        _LOG.info("The configuration is stored in " + cfg_path)
+
+    else:
+        logging.basicConfig(format="%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        setup_logger()
+
     await setup.init()
     await startcheck()
 

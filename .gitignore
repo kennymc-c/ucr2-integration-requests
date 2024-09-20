@@ -396,3 +396,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Test and config files
+config.json
+.venv/
+manual-build+upload.sh

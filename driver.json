@@ -1,7 +1,7 @@
 {
   "driver_id": "requests",
-  "version": "0.2",
-  "release_date": "2024-06-26",
+  "version": "0.3.0-dev",
+  "release_date": "2024-09-20",
   "min_core_api": "0.24.3",
   "name": { 
       "en": "HTTP & WOL Requests",
@@ -9,8 +9,8 @@
   },
   "icon": "uc:integration",
   "description": {
-      "en": "Integration to send HTTP get/post/patch/put requests and Wake on LAN magic packets to a specific ip or url",
-      "de": "Integration zum Senden von HTTP Get/Post/Patch/Put-Anfragen und Wake-on-LAN Magic Pakets an eine bestimmte URL oder IP"
+      "en": "Integration to send HTTP get/post/patch/put/delete/head requests and wake-on-LAN magic packets to a specific ip or url",
+      "de": "Integration zum Senden von HTTP Get/Post/Patch/Put/Delete/Head-Anfragen und Wake-on-LAN Magic Pakets an eine bestimmte URL oder IP"
   },
   "port": 9081,
   "developer": {

@@ -1,5 +1,5 @@
 #!/bin/bash
 
-pip install --no-cache-dir -q -r /usr/src/app/requirements.txt
-cd /usr/src/app/intg-requests
-python driver.py
+cd /usr/src/app
+pip install --no-cache-dir -q -r requirements.txt
+python intg-requests/driver.py

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
+"""Module that includes all functions needed for the setup and reconfiguration process"""
+
 import logging
-import json
 
 import ucapi
 
@@ -13,21 +14,26 @@ _LOG = logging.getLogger(__name__)
 
 
 async def init():
-    await driver.api.init("setup.json", driver_setup_handler)
+    """Advertises the driver metadata and first setup page to the remote using driver.json"""
+    await driver.api.init("driver.json", driver_setup_handler)
 
 
 
 async def add_mp_all():
-    for cmd in config.setup.all_cmds:
-        id = config.setup.get("id-"+cmd)
-        name = config.setup.get("name-"+cmd)
+    """Adds a media player entity for each configured command in config.py"""
+    for cmd in config.Setup.all_cmds:
+        try:
+            entity_id = config.Setup.get("id-"+cmd)
+            entity_name = config.Setup.get("name-"+cmd)
+        except ValueError as v:
+            _LOG.error(v)
 
         if driver.api.available_entities.contains(id):
-            _LOG.debug("Entity with id " + id + " is already in storage as available entity")
+            _LOG.debug("Entity with id " + entity_id + " is already in storage as available entity")
         else:
             #Only works when add_mp is called outside of driver.py. Otherwise an entity is not available api warning is shown after adding all entities
-            await driver.add_mp(id, name)
-    
+            await driver.add_mp(entity_id, entity_name)
+
 
 
 async def driver_setup_handler(msg: ucapi.SetupDriver) -> ucapi.SetupAction:
@@ -48,7 +54,7 @@ async def driver_setup_handler(msg: ucapi.SetupDriver) -> ucapi.SetupAction:
         _LOG.info("Setup was aborted with code: %s", msg.error)
 
     _LOG.error("Error during setup")
-    config.setup.set("setup_complete", False)
+    config.Setup.set("setup_complete", False)
     return ucapi.SetupError()
 
 
@@ -63,18 +69,22 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
     :return: the setup action on how to continue
     """
 
-    if msg.reconfigure and config.setup.get("setup_complete"):
+    if msg.reconfigure and config.Setup.get("setup_complete"):
         _LOG.info("Starting reconfiguration")
-        config.setup.set("setup_reconfigure", True)
+        config.Setup.set("setup_reconfigure", True)
 
 
     if msg.setup_data["advanced_settings"] == "true":
         _LOG.info("Entering advanced setup settings")
 
-        rq_timeout = config.setup.get("rq_timeout")
-        rq_ssl_verify = config.setup.get("rq_ssl_verify")
+        try:
+            rq_timeout = config.Setup.get("rq_timeout")
+            rq_ssl_verify = config.Setup.get("rq_ssl_verify")
+            rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
+        except ValueError as v:
+            _LOG.error(v)
 
-        _LOG.debug("Currently stored - rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify))
+        _LOG.debug("Currently stored - rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget))
 
         return ucapi.RequestUserInput(
             {
@@ -82,7 +92,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
                 "de": "Konfiguration"
             },
             [
-                {  
+                {
                   "id": "rq_timeout",
                   "label": {
                             "en": "Timeout for HTTP requests (max. 30 seconds):",
@@ -102,7 +112,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
                                         }
                             },
                 },
-                {  
+                {
                     "id": "rq_ssl_verify",
                     "label": {
                         "en": "Verify HTTP SSL certificates:",
@@ -113,17 +123,28 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
                                         }
                             },
                 },
+                                {
+                    "id": "rq_fire_and_forget",
+                    "label": {
+                        "en": "Ignore HTTP requests errors (fire and forget):",
+                        "de": "Fehler bei HTTP-Anfragen ignorieren (Fire and Forget):"
+                        },
+                    "field": {"checkbox": {
+                                        "value": rq_fire_and_forget
+                                        }
+                            },
+                },
             ],
         )
-    else:
-        if not config.setup.get("setup_reconfigure"): 
-            await add_mp_all()
-        else:
-            _LOG.info("Skip adding available entities during reconfiguration setup")
 
-        _LOG.info("Setup complete")
-        config.setup.set("setup_complete", True)
-        return ucapi.SetupComplete()
+    if not config.Setup.get("setup_reconfigure"):
+        await add_mp_all()
+    else:
+        _LOG.info("Skip adding available entities during reconfiguration setup")
+
+    _LOG.info("Setup complete")
+    config.Setup.set("setup_complete", True)
+    return ucapi.SetupComplete()
 
 
 
@@ -139,41 +160,58 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
 
     rq_timeout = msg.input_values["rq_timeout"]
     rq_ssl_verify = msg.input_values["rq_ssl_verify"]
+    rq_fire_and_forget = msg.input_values["rq_fire_and_forget"]
 
     rq_timeout = int(rq_timeout)
     try:
-        config.setup.set("rq_timeout", rq_timeout)
+        config.Setup.set("rq_timeout", rq_timeout)
     except Exception as e:
         _LOG.error(e)
-        config.setup.set("setup_complete", False)
+        config.Setup.set("setup_complete", False)
         return ucapi.SetupError()
-    _LOG.info("Chosen timeout: " +  str(rq_timeout))
-            
+    _LOG.info("Chosen timeout: " +  str(rq_timeout) + " seconds")
+
     if rq_ssl_verify == "true": #Boolean in quotes as all values are returned as strings
         try:
-            config.setup.set("rq_ssl_verify", True)
+            config.Setup.set("rq_ssl_verify", True)
         except Exception as e:
             _LOG.error(e)
-            config.setup.set("setup_complete", False)
+            config.Setup.set("setup_complete", False)
             return ucapi.SetupError()
         _LOG.info("HTTP SSL verification activated")
     else:
         try:
-            config.setup.set("rq_ssl_verify", False)
+            config.Setup.set("rq_ssl_verify", False)
         except Exception as e:
             _LOG.error(e)
-            config.setup.set("setup_complete", False)
+            config.Setup.set("setup_complete", False)
             return ucapi.SetupError()
         _LOG.info("HTTP SSL verification deactivated")
 
-    if not config.setup.get("setup_reconfigure"): 
-        for cmd in config.setup.all_cmds:
-            id = config.setup.get("id-"+cmd)
-            name = config.setup.get("name-"+cmd)
-            await driver.add_mp(id, name)
+    if rq_fire_and_forget == "true": #Boolean in quotes as all values are returned as strings
+        try:
+            config.Setup.set("rq_fire_and_forget", True)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
+        _LOG.info("Fire and forget mode activated. Always return OK to the remote")
+    else:
+        try:
+            config.Setup.set("rq_fire_and_forget", False)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
+
+    if not config.Setup.get("setup_reconfigure"):
+        for cmd in config.Setup.all_cmds:
+            entity_id = config.Setup.get("id-"+cmd)
+            entity_name = config.Setup.get("name-"+cmd)
+            await driver.add_mp(entity_id, entity_name)
     else:
         _LOG.info("Skip adding available entities during reconfiguration")
 
     _LOG.info("Setup complete")
-    config.setup.set("setup_complete", True)
+    config.Setup.set("setup_complete", True)
     return ucapi.SetupComplete()
