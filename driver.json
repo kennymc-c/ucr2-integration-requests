@@ -1,6 +1,6 @@
 {
   "driver_id": "requests",
-  "version": "0.3.0-dev",
+  "version": "0.3.0",
   "release_date": "2024-09-20",
   "min_core_api": "0.24.3",
   "name": { 
