@@ -4,6 +4,8 @@
   
   on:
     workflow_dispatch:
+    push:
+      branches: dev
   
   env:
     INTG_NAME: requests
