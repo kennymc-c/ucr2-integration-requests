@@ -76,7 +76,7 @@ _⚠️ This feature is currently only available in beta firmware releases and r
 
 #### Download integration driver
 
-Download the uc-intg-requests-x.x.x-aarch64.tar.gz archive in the assets section from the [latest release](/releases/latest)
+Download the uc-intg-requests-x.x.x-aarch64.tar.gz archive in the assets section from the [latest release](https://github.com/kennymc-c/ucr2-integration-requests/releases/latest)
 
 #### Install custom integration driver on the remote
 
