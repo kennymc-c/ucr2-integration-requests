@@ -67,7 +67,9 @@ If your actual url contains one or more of the above separators or other special
 
 ### Run on the remote as a custom integration driver
 
-_This requires firmware 1.9.2 or newer (only from this version onwards the necessary libraries for this integration are included)_
+_⚠️ This feature is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see below) and that changes in future beta updates may temporarily or permanently break the functionality of this integration as a custom integration. Please wait until custom integrations are available in stable firmware releases if you don't want to take these risks._
+
+_You currently can't update custom integrations. You need to delete the integration from the integrations menu first and then re-upload the new version. Do not edit any activity or macros that includes entities from this integration after you removed the integration and wait until the new version has been uploaded and installed. You also need to add re-add entities to the main pages after the update as they are automatically removed. An update function will probably be added once the custom integrations feature will be available in stable firmware releases. _
 
 #### Download integration driver
 
