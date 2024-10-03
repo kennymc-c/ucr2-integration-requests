@@ -1,15 +1,14 @@
 # HTTP Requests & Wake on LAN Integration for Unfolded Circle Remote Devices
 
-## ⚠️ WARNING ⚠️
+## ⚠️ Disclaimer ⚠️
 
-### Disclaimer: This software may contain bugs that could affect system stability. Please use it at your own risk!
+This software may contain bugs that could affect system stability. Please use it at your own risk!
 
 ##
 
 Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently [Remote Two](https://www.unfoldedcircle.com/remote-two) and the upcoming [Remote 3](https://www.unfoldedcircle.com)) to send http requests and wake-on-lan magic packets.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests), [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) and [getmac](https://github.com/GhostofGoes/getmac).
-
 
 ### Supported features
 
@@ -21,13 +20,11 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 - Send wake-on-lan magic packets to a specified mac address, ip (v4/v6) or hostname (ipv4 only)
   - Discover the mac address from an ip address or a hostname is not supported when running the integration on the remote due to sandbox limitations and may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
 
-
 ### Planned features
 
 - Support for custom http headers
 
-*Additional smaller planned improvements are labeled with #TODO in the code*
-
+Additional smaller planned improvements are labeled with #TODO in the code
 
 ## Configuration
 
@@ -57,19 +54,19 @@ Optional payload data can be added to the request body with a specific separator
 
 | Content type                      | Separator     | Example                                                      | Notes |
 |-----------------------------------|---------------|--------------------------------------------------------------|-------|
-| `application/x-www-form-urlencoded` | `§` (paragraph) |  `https://httpbin.org/post§key1=value1,key2=value2`            | Multiple values for a single key are currently not supported. 
-| `application/json `                 | `\|` (pipe)     |  `https://httpbin.org/post\|{"key1":"value1","key2":"value2"}` |
-| `application/xml`                   | `^` (caret)     |  `https://httpbin.org/post^<Tests Id="01"><Test TestId="01"><Name>Command name</Name></Test></Tests>` |
+| `application/x-www-form-urlencoded` | `§` (paragraph) |  `https://httpbin.org/post§key1=value1,key2=value2`            | Multiple values for a single key are currently not supported. |
+| `application/json`                 | `\|` (pipe)     |  `https://httpbin.org/post\|{"key1":"value1","key2":"value2"}` | |
+| `application/xml`                   | `^` (caret)     |  `https://httpbin.org/post^<Tests Id="01"><Test TestId="01"><Name>Command name</Name></Test></Tests>` | |
 
-**Only one payload type per requests is supported**
+#### Only one payload type per requests is supported
 
-If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with https://www.urlencoder.io)
+If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with <https://www.urlencoder.io>)
 
 ## Installation
 
 ### Run on the remote as a custom integration driver
 
-_⚠️ This feature is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see below) and that changes in future beta updates may temporarily or permanently break the functionality of this integration as a custom integration. Please wait until custom integrations are available in stable firmware releases if you don't want to take these risks._
+*⚠️ This feature is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see below) and that changes in future beta updates may temporarily or permanently break the functionality of this integration as a custom integration. Please wait until custom integrations are available in stable firmware releases if you don't want to take these risks.*
 
 #### Missing firmware features
 
@@ -82,7 +79,7 @@ Download the uc-intg-requests-x.x.x-aarch64.tar.gz archive in the assets section
 
 #### Install custom integration driver on the remote
 
-The custom integration driver installation is currently only possible via the Core API. 
+The custom integration driver installation is currently only possible via the Core API.
 
 ```shell
 curl --location 'http://$IP/api/intg/install' \
@@ -94,7 +91,7 @@ There is also a Core API GUI available at https://[Remote-IP]/doc/core-rest/. Sc
 
 UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79).
 
-### Run on a separate device as an external integration driver 
+### Run on a separate device as an external integration driver
 
 #### Bare metal/VM
 
@@ -136,6 +133,7 @@ For Python based integrations Unfolded Circle recommends to use `pyinstaller` to
 First we need to compile the driver on the target architecture because `pyinstaller` does not support cross compilation.
 
 The `--onefile` option to create a one-file bundled executable should be avoided:
+
 - Higher startup cost, since the wrapper binary must first extract the archive.
 - Files are extracted to the /tmp directory on the device, which is an in-memory filesystem.  
   This will further reduce the available memory for the integration drivers!
