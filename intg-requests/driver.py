@@ -77,7 +77,7 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
     else:
         _LOG.info(f"Received {cmd_id} command with parameter {_params} for entity id {entity.id}")
 
-    return media_player.mp_cmd_assigner(entity.id, cmd_id, _params)
+    return await media_player.mp_cmd_assigner(entity.id, cmd_id, _params)
 
 
 

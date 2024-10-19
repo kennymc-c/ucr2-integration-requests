@@ -46,7 +46,7 @@ Choose one or more HTTP request method entities from the integration setup and a
 
 For http requests your server needs to respond with a *200 OK* status or any other informational or redirection http status codes (100s, 200s or 300s). If the server's response content is not empty it will be shown in the integration log. In case of a client or server error (400s or 500s) the command will fail on the remote and the error message and status code will be shown in the integration log.
 
-If you activate the option to ignore HTTP requests errors in the integration setup the integration will always return a OK/200 status code to the remote. This can be helpful if the requested server/device doesn't send any response or closes the connection after a command is received (fire and forget). The error message will still be logged but at debug instead of error level
+If you activate the option to ignore HTTP requests errors in the integration setup a OK/200 status code will always be returned to the remote (fire and forget). This can be helpful if the requested server/device needs longer than the set timeout to wake up from deep sleep, generally doesn't send any response at all or closes the connection after a command is received. The error message will still be logged but at debug instead of error level.
 
 #### Adding payload data
 

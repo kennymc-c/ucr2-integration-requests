@@ -2,6 +2,7 @@
 
 """Module that includes the media player command assigner that assigns a requests or wol command depending on the passed entity id"""
 
+import asyncio
 import logging
 import json
 from json import JSONDecodeError
@@ -106,7 +107,11 @@ Please refer to the getmac supported platforms (https://github.com/GhostofGoes/g
 
 
 
-def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None):
+
+
+
+
+async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None):
     """Run a requests or wol command depending on the passed entity id and parameter"""
 
     if params["source"] != "":
@@ -114,77 +119,55 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
     else:
         _LOG.error("Source parameter empty")
         return ucapi.StatusCodes.BAD_REQUEST
+    
 
-    rq_timeout = config.Setup.get("rq_timeout")
-    rq_ssl_verify = config.Setup.get("rq_ssl_verify")
-    rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
+    def async_rq_cmd(rq_cmd: str, url: str, data: str = None, xml: bool = False):
+        global cmd_status
 
-    if entity_id in config.Setup.rq_ids:
-        if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
-            #Needed as hyphens can not be used in function and variable names and also to keep the existing entity IDs to prevent activity/macro reconfiguration.
-            rq_cmd = entity_id.replace("http-", "rq_")
+        rq_timeout = config.Setup.get("rq_timeout")
+        rq_ssl_verify = config.Setup.get("rq_ssl_verify")
+        rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
 
-            user_agent = config.Setup.get("rq_user_agent")
-            headers = {"User-Agent" : user_agent} #TODO Add integration version number to user agent
+        user_agent = config.Setup.get("rq_user_agent")
+        headers = {"User-Agent" : user_agent} #TODO Add integration version number to user agent
+        if xml is True:
+            headers.update({"Content-Type" : "application/xml"})
 
-            _LOG.debug("rq_cmd: " + rq_cmd + " , rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget))
+        _LOG.debug("rq_cmd: " + rq_cmd + " , rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget))
 
-            try:
+        if rq_ssl_verify is False:
+            #Deactivate SSL verify warning message
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-                if rq_ssl_verify is False:
-                    #Deactivate SSL verify warning message
-                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-                if "§" in cmd_param:
-                    _LOG.info("Passed parameter contains form data")
-                    url, form_string = cmd_param.split("§")
-                    #Convert passed string input into Python dict for requests
-                    form_dict = dict(pair.split("=") for pair in form_string.split(",")) #TODO Support multiple values for a single key. Will probably require a syntax change
-                    #Utilise globals()[] to be able to use a variable as a function name
-                    r = globals()[rq_cmd](url, data=form_dict, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
-
-                elif "|" in cmd_param:
-                    _LOG.info("Passed parameter contains json data")
-                    url, json_string = cmd_param.split("|")
-                    try:
-                        json_dict = json.loads(json_string)
-                    except JSONDecodeError as e:
-                        _LOG.error("JSONDecodeError: " + str(e))
-                        return ucapi.StatusCodes.CONFLICT
-                    r = globals()[rq_cmd](url, json=json_dict, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
-
-                elif "^" in cmd_param:
-                    _LOG.info("Passed parameter contains xml data")
-                    url, xml_string = cmd_param.split("^")
-                    headers.update({"Content-Type" : "application/xml"})
-                    _LOG.debug(headers)
-                    r = globals()[rq_cmd](url, data=xml_string, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
-
-                else:
-                    url = cmd_param
-                    r = globals()[rq_cmd](url, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
-
-
-            except rq_exceptions.Timeout as t:
-                _LOG.error("Ran into a timeout from Python requests module:")
+        try:
+            r = globals()[rq_cmd](url, data=data, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
+        except rq_exceptions.Timeout as t:
+            if rq_fire_and_forget is True:
+                _LOG.info("Got a timeout error but fire and forget mode is active. Return 200/OK status code to the remote")
+                _LOG.debug("Ignored error: " + str(t))
+                cmd_status = ucapi.StatusCodes.OK
+            else:
+                _LOG.error("Got a timeout error from Python requests module:")
                 _LOG.error(t)
-                return ucapi.StatusCodes.TIMEOUT
-            except Exception as e:
-                if rq_fire_and_forget is True:
-                    _LOG.info("Got a requests error but fire and forget mode is active. Return 200/OK status code to the remote")
-                    _LOG.debug("Error: " + str(e))
-                    return ucapi.StatusCodes.OK
+                cmd_status = ucapi.StatusCodes.TIMEOUT
+        except Exception as e:
+            if rq_fire_and_forget is True:
+                _LOG.info("Got a requests error but fire and forget mode is active. Return 200/OK status code to the remote")
+                _LOG.debug("Ignored error: " + str(e))
+                cmd_status = ucapi.StatusCodes.OK
+            else:
                 _LOG.error("Got error message from Python requests module:")
                 _LOG.error(e)
-                return ucapi.StatusCodes.CONFLICT
+                cmd_status = ucapi.StatusCodes.CONFLICT
 
+        if cmd_status == "":
             if r.status_code == http_codes.ok:
-                _LOG.info("Sent " + entity_id + " request to: " + url)
+                _LOG.info("Sent " + rq_cmd + " request to: " + url)
                 if r.text != "":
                     _LOG.debug("Server response: " + r.text)
                 else:
                     _LOG.debug("Received 200 - OK status code")
-                return ucapi.StatusCodes.OK
+                cmd_status = ucapi.StatusCodes.OK
 
             try:
                 r.raise_for_status() #Check if status code in 400 or 500 range
@@ -195,14 +178,51 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
                     if r.status_code == 404:
                         if r.text != "":
                             _LOG.debug("Server response: " + r.text)
-                        return ucapi.StatusCodes.NOT_FOUND
-                    return ucapi.StatusCodes.BAD_REQUEST
-                return ucapi.StatusCodes.SERVER_ERROR
+                        cmd_status = ucapi.StatusCodes.NOT_FOUND
+                    cmd_status = ucapi.StatusCodes.BAD_REQUEST
+                cmd_status = ucapi.StatusCodes.SERVER_ERROR
             if r.raise_for_status() is None:
                 _LOG.info("Received informational or redirection http status code: " + str(r.status_code))
                 if r.text != "":
                     _LOG.debug("Server response: " + r.text)
-                return ucapi.StatusCodes.OK
+                cmd_status = ucapi.StatusCodes.OK
+
+
+    if entity_id in config.Setup.rq_ids:
+        if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
+            #Needed as hyphens can not be used in function and variable names and also to keep the existing entity IDs to prevent activity/macro reconfiguration.
+            rq_cmd = entity_id.replace("http-", "rq_")
+
+            if "§" in cmd_param:
+                _LOG.info("Passed parameter contains form data")
+                url, form_string = cmd_param.split("§")
+                #Convert passed string input into Python dict for requests
+                form_dict = dict(pair.split("=") for pair in form_string.split(",")) #TODO Support multiple values for a single key. Will probably require a syntax change
+                #Utilise globals()[] to be able to use a variable as a function name
+                await asyncio.gather(asyncio.to_thread(async_rq_cmd, rq_cmd, url, data=form_dict), asyncio.sleep(1))
+                return cmd_status
+
+            elif "|" in cmd_param:
+                _LOG.info("Passed parameter contains json data")
+                url, json_string = cmd_param.split("|")
+                try:
+                    json_dict = json.loads(json_string)
+                except JSONDecodeError as e:
+                    _LOG.error("JSONDecodeError: " + str(e))
+                    return ucapi.StatusCodes.CONFLICT
+                await asyncio.gather(asyncio.to_thread(async_rq_cmd, rq_cmd, url, data=json_dict), asyncio.sleep(1))
+                return cmd_status
+
+            elif "^" in cmd_param:
+                _LOG.info("Passed parameter contains xml data")
+                url, xml_string = cmd_param.split("^")
+                await asyncio.gather(asyncio.to_thread(async_rq_cmd, rq_cmd, url, data=xml_string, xml=True), asyncio.sleep(1))
+                return cmd_status
+
+            else:
+                url = cmd_param
+                await asyncio.gather(asyncio.to_thread(async_rq_cmd, rq_cmd, url), asyncio.sleep(1))
+                return cmd_status
 
         else:
             _LOG.error("Command not implemented: " + cmd_name)
