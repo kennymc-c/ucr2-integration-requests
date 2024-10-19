@@ -124,6 +124,8 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
     def async_rq_cmd(rq_cmd: str, url: str, data: str = None, xml: bool = False):
         global cmd_status
 
+        cmd_status = ""
+
         rq_timeout = config.Setup.get("rq_timeout")
         rq_ssl_verify = config.Setup.get("rq_ssl_verify")
         rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
