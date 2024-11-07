@@ -36,7 +36,11 @@ The integration exposes a media player entity for each supported request command
 
 ### Wake-on-lan
 
-Choose the Wake on lan entity from the integration setup and add it to an activity or macro. Enter the desired hostname, mac or ip address (ipv4/v6) in the source field when you configure your activity/macro sequence or activity ui.
+Choose the Wake on lan entity from the integration setup and add it to an activity or macro. Enter the desired hostname, mac or ip address (ipv4/v6) in the source field when you configure your activity/macro sequence or activity ui. Multiple addresses can be separated by a comma.
+
+#### Supported parameters
+
+All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) are supported (interface, port, ip_address)
 
 ### HTTP requests
 

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2024-11-07
+
+### Added
+
+- Send wake-on-lan magic packets to multiple addresses by separating them with a comma
+- Support for all parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) (interface, port, ip_address)
+  - Example: XX:XX:XX:XX:XX:XX,interface=192.168.1.101
+
 ## [0.3.1] - 2024-10-19
 
 ### Added

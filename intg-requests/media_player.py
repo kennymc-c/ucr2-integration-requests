@@ -29,23 +29,23 @@ _LOG = logging.getLogger(__name__)
 
 
 
-def wol(param: str):
-    """Sends a magic packet to a passed string. If a valid ip address or hostname is passed instead of a mac address the mac address will be automatically discovered.\
-    If the mac address can not be discovered a value error is raised if """
+def get_mac(param: str):
+    """Accepts mac, ip addresses or hostnames. Get the mac address or checks if the mac address is valid.\
+    If the mac address can not be discovered a value error is raised"""
 
     try:
         ip_address(param)
         param_type = "ip"
-        _LOG.debug("Entered WoL parameter is an ip address. Using getmac to discover mac address")
+        _LOG.debug("\""+param+"\" is an ip address. Using getmac to discover mac address")
     except ValueError:
         is_valid_mac = match(r"([0-9A-F]{2}[:]){5}[0-9A-F]{2}|"r"([0-9A-F]{2}[-]){5}[0-9A-F]{2}",string=param,flags=IGNORECASE) #RegEx for mac addresses
         try:
             bool(is_valid_mac.group())
             param_type = "mac"
-            _LOG.debug("Entered WoL parameter is a mac address")
+            _LOG.debug("\""+param+"\"  is a mac address")
         except AttributeError:
             param_type = "hostname"
-            _LOG.debug("Entered WoL parameter could be a hostname. Using getmac to discover mac address")
+            _LOG.debug("\""+param+"\" could be a hostname. Using getmac to discover the mac address")
 
     if param_type == "ip":
         if config.Setup.get("bundle_mode"):
@@ -60,7 +60,7 @@ def wol(param: str):
                 if param is not None:
                     _LOG.info("Got mac address from entered ipv4 ip: " + param)
                 if param == "" or param is None:
-                    raise OSError("Could not convert parameter with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
+                    raise OSError("Could not convert ipv4 with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
     Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
             except AddressValueError:
                 try:
@@ -72,7 +72,7 @@ def wol(param: str):
                     if param is not None:
                         _LOG.info("Got mac address from entered ipv6 ip: " + param)
                     if param == "" or param is None:
-                        raise OSError("Could not convert parameter with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
+                        raise OSError("Could not convert ipv6 with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
     Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
                 except AddressValueError as v:
                     raise ValueError(v) from v
@@ -88,7 +88,7 @@ def wol(param: str):
             if param is not None:
                 _LOG.info("Got mac address from entered hostname: " + param)
             if param == "" or param is None:
-                raise OSError("Could not convert parameter with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
+                raise OSError("Could not convert hostname with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
     Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
 
     if param == "00:00:00:00:00:00":
@@ -96,14 +96,7 @@ def wol(param: str):
 Discover the mac address from an ip address or a hostname may not work on all systems. \
 Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
 
-    try:
-        send_magic_packet(param)
-    except ValueError as v:
-        raise ValueError(v) from v
-    except Exception as e:
-        raise Exception(e) from e
-
-    _LOG.info("Sent wake on lan magic packet to mac address: " + param)
+    return param
 
 
 
@@ -114,9 +107,9 @@ Please refer to the getmac supported platforms (https://github.com/GhostofGoes/g
 async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None):
     """Run a requests or wol command depending on the passed entity id and parameter"""
 
-    if params["source"] != "":
+    try:
         cmd_param = params["source"]
-    else:
+    except KeyError:
         _LOG.error("Source parameter empty")
         return ucapi.StatusCodes.BAD_REQUEST
     
@@ -235,20 +228,54 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
     if entity_id == config.Setup.get("id-wol"):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
 
+            params = {}
+            addresses = []
+
+            if "," in cmd_param:
+                _LOG.info("Passed parameter contains more than one address and/or wol parameters")
+                values = cmd_param.split(",")
+
+                for value in values:
+                    value = value.strip()
+                    if "=" in value:
+                        name, param = value.split("=")
+                        if name == "port":
+                            param = int(param)
+                        params[name] = param
+                    else:
+                        addresses.append(value)
+            else:
+                addresses.append(cmd_param)
+
+            macs = []
+            if addresses:
+                for address in addresses:
+                    try:
+                        mac = get_mac(address)
+                    except ValueError as v:
+                        _LOG.error(v)
+                        _LOG.error("Used WoL parameter \"" + value + "\" is not a valid hostname, mac or ip address")
+                        return ucapi.StatusCodes.BAD_REQUEST
+                    except OSError as o:
+                        _LOG.error(o)
+                        return ucapi.StatusCodes.CONFLICT
+                    except Exception as e:
+                        _LOG.error("Got an error while retrieving the mac address")
+                        _LOG.error(e)
+                        return ucapi.StatusCodes.BAD_REQUEST
+                    macs.append(mac)
+
             try:
-                wol(cmd_param)
+                send_magic_packet(*macs, **params) #Unpack macs list with * and params dicts list with **
             except ValueError as v:
                 _LOG.error(v)
-                _LOG.error("Used WoL parameter \"" + cmd_param + "\" is not a valid or reachable hostname, mac or ip address")
                 return ucapi.StatusCodes.BAD_REQUEST
-            except OSError as o:
-                _LOG.error(o)
-                return ucapi.StatusCodes.CONFLICT
             except Exception as e:
-                _LOG.error("Got error message from Python wakeonlan module:")
+                _LOG.error("Got an error message from Python wakeonlan module:")
                 _LOG.error(e)
                 return ucapi.StatusCodes.BAD_REQUEST
 
+            _LOG.info("Sent wake on lan magic packet to mac address(es)): " + str(macs))
             return ucapi.StatusCodes.OK
 
         _LOG.error("Command not implemented: " + cmd_name)

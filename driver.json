@@ -1,7 +1,7 @@
 {
   "driver_id": "requests",
-  "version": "0.3.1",
-  "release_date": "2024-10-19",
+  "version": "0.4.0",
+  "release_date": "2024-11-07",
   "min_core_api": "0.24.3",
   "name": { 
       "en": "HTTP & WOL Requests",
