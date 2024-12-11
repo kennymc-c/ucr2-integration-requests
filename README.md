@@ -83,17 +83,19 @@ Download the uc-intg-requests-x.x.x-aarch64.tar.gz archive in the assets section
 
 #### Install custom integration driver on the remote
 
-The custom integration driver installation is currently only possible via the Core API.
+Since firmware version 2.2.0 you can upload custom integrations in the web configurator. Go to integrations, click on install custom and choose the downloaded tar.gz file
+
+##### Upload via Core API or 3rd party tools
 
 ```shell
 curl --location 'http://$IP/api/intg/install' \
 --user 'web-configurator:$PIN' \
---form 'file=@"uc-intg-requests-$VERSION-aarch64.tar.gz"'
+--form 'file=@"uc-intg-sonysdcp-$VERSION-aarch64.tar.gz"'
 ```
 
-There is also a Core API GUI available at https://[Remote-IP]/doc/core-rest/. Scroll down to POST intg/install and click on Try it out, choose a file and then click on Execute.
+There is also a Core API GUI available at https://_Remote-IP_/doc/core-rest. Click on Authorize to log in (username: web-configurator, password: your PIN), scroll down to POST intg/install, click on Try it out, choose a file and then click on Execute.
 
-UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79).
+Alternatively you can also use the inofficial [UC Remote Toolkit](https://github.com/albaintor/UC-Remote-Two-Toolkit)
 
 ### Run on a separate device as an external integration driver
 
