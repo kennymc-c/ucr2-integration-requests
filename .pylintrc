@@ -20,6 +20,9 @@ disable=
     too-many-instance-attributes,
     too-many-arguments,
     too-many-public-methods,
+    broad-exception-caught,
+    broad-exception-raised,
+    logging-not-lazy,
     fixme # temporary
 
 [STRING]

@@ -78,13 +78,16 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         _LOG.info("Entering advanced setup settings")
 
         try:
+            tcp_text_timeout = config.Setup.get("tcp_text_timeout")
             rq_timeout = config.Setup.get("rq_timeout")
             rq_ssl_verify = config.Setup.get("rq_ssl_verify")
             rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
+            rq_user_agent = config.Setup.get("rq_user_agent")
         except ValueError as v:
             _LOG.error(v)
 
-        _LOG.debug("Currently stored - rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget))
+        _LOG.debug("Currently stored - tcp_text_timeout: " + str(tcp_text_timeout) + " , rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: "\
++ str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget) + ",  rq_user_agent: " + str(rq_user_agent))
 
         return ucapi.RequestUserInput(
             {
@@ -92,6 +95,36 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
                 "de": "Konfiguration"
             },
             [
+                {
+                    "id": "tcp-text-settings",
+                    "label": {"en": "Text over TCP:", "de": "Text über TCP:"},
+                    "field": { "label": { "value": {} }}
+                },
+                {
+                  "id": "tcp_text_timeout",
+                  "label": {
+                            "en": "Timeout for Text over TCP (max. 30 seconds):",
+                            "de": "Timeout für Text over TCP (max. 30 Sekunden):"
+                            },
+                   "field": {"number": {
+                                    "value": tcp_text_timeout,
+                                    "min": 1,
+                                    "max": 30,
+                                    "steps": 1,
+                                    "decimals": 1,
+                                    "unit":
+                                        {
+                                            "en": "seconds",
+                                            "de": "Sekunden"
+                                        }
+                                        }
+                            },
+                },
+                {
+                    "id": "http-requests-settings",
+                    "label": {"en": "Http requests:", "de": "HTTP-Anfragen:"},
+                    "field": { "label": { "value": {} }}
+                },
                 {
                   "id": "rq_timeout",
                   "label": {
@@ -111,6 +144,17 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
                                         }
                                         }
                             },
+                },
+                {
+                  "id": "rq_user_agent",
+                  "label": {
+                            "en": "HTTP requests user agent:",
+                            "de": "HTTP-Anfragen User Agent:"
+                            },
+                   "field": {"text": {
+                                    "value": rq_user_agent
+                                        }
+                            }
                 },
                 {
                     "id": "rq_ssl_verify",
@@ -158,18 +202,38 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
     :return: the setup action on how to continue: SetupComplete if finished.
     """
 
+    tcp_text_timeout = msg.input_values["tcp_text_timeout"]
     rq_timeout = msg.input_values["rq_timeout"]
     rq_ssl_verify = msg.input_values["rq_ssl_verify"]
     rq_fire_and_forget = msg.input_values["rq_fire_and_forget"]
+    rq_user_agent = msg.input_values["rq_user_agent"]
 
     rq_timeout = int(rq_timeout)
+    tcp_text_timeout = int(tcp_text_timeout)
+
+    try:
+        config.Setup.set("tcp_text_timeout", tcp_text_timeout)
+    except Exception as e:
+        _LOG.error(e)
+        config.Setup.set("setup_complete", False)
+        return ucapi.SetupError()
+    _LOG.info("Tcp text timeout: " +  str(tcp_text_timeout) + " seconds")
+
     try:
         config.Setup.set("rq_timeout", rq_timeout)
     except Exception as e:
         _LOG.error(e)
         config.Setup.set("setup_complete", False)
         return ucapi.SetupError()
-    _LOG.info("Chosen timeout: " +  str(rq_timeout) + " seconds")
+    _LOG.info("Http requests timeout: " +  str(rq_timeout) + " seconds")
+
+    try:
+        config.Setup.set("rq_user_agent", rq_user_agent)
+    except Exception as e:
+        _LOG.error(e)
+        config.Setup.set("setup_complete", False)
+        return ucapi.SetupError()
+    _LOG.info("Http requests user agent: \"" +  str(rq_user_agent) + "\"")
 
     if rq_ssl_verify == "true": #Boolean in quotes as all values are returned as strings
         try:
@@ -212,6 +276,9 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
     else:
         _LOG.info("Skip adding available entities during reconfiguration")
 
-    _LOG.info("Setup complete")
+    if config.Setup.get("setup_reconfigure"):
+        _LOG.info("Reconfiguration complete")
+    else:
+        _LOG.info("Setup complete")
     config.Setup.set("setup_complete", True)
     return ucapi.SetupComplete()

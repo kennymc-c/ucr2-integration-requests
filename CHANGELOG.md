@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2024-12-15
+
+### Added
+
+- Added text over TCP entity. This protocol is used by some home automation systems or tools like [win-remote-control](https://github.com/moefh/win-remote-control)
+  - Example: 192.168.1.1:1234, "Hello World"
+- Option to change the default http requests user agent in the advanced setup settings
+
 ## [0.4.0] - 2024-11-07
 
 ### Added

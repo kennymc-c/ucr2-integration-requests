@@ -1,14 +1,44 @@
-# HTTP Requests & Wake on LAN Integration for Unfolded Circle Remote Devices
+# A network multi tool integration for Unfolded Circle Remote Devices <!-- omit in toc -->
 
-## ⚠️ Disclaimer ⚠️
+## ⚠️ Disclaimer ⚠️  <!-- omit in toc -->
 
 This software may contain bugs that could affect system stability. Please use it at your own risk!
 
-##
+## <!-- omit in toc -->
 
-Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently [Remote Two](https://www.unfoldedcircle.com/remote-two) and the upcoming [Remote 3](https://www.unfoldedcircle.com)) to send http requests and wake-on-lan magic packets.
+Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently [Remote Two](https://www.unfoldedcircle.com/remote-two) and the upcoming [Remote 3](https://www.unfoldedcircle.com)) to send http requests, wake-on-lan magic packets and text over TCP.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests), [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) and [getmac](https://github.com/GhostofGoes/getmac).
+
+- [Configuration](#configuration)
+- [Usage](#usage)
+  - [Wake-on-lan](#wake-on-lan)
+    - [Supported parameters](#supported-parameters)
+  - [HTTP requests](#http-requests)
+    - [Expected server response](#expected-server-response)
+    - [Adding payload data](#adding-payload-data)
+    - [Only one payload type per requests is supported](#only-one-payload-type-per-requests-is-supported)
+  - [Text over TCP](#text-over-tcp)
+- [Installation](#installation)
+  - [Run on the remote as a custom integration driver](#run-on-the-remote-as-a-custom-integration-driver)
+    - [Missing firmware features](#missing-firmware-features)
+    - [Download integration driver](#download-integration-driver)
+    - [Install custom integration driver on the remote](#install-custom-integration-driver-on-the-remote)
+      - [Upload via Core API or 3rd party tools](#upload-via-core-api-or-3rd-party-tools)
+  - [Run on a separate device as an external integration driver](#run-on-a-separate-device-as-an-external-integration-driver)
+    - [Bare metal/VM](#bare-metalvm)
+      - [Requirements](#requirements)
+      - [Start the integration](#start-the-integration)
+    - [Docker container](#docker-container)
+- [Build](#build)
+  - [Build distribution binary](#build-distribution-binary)
+    - [x86-64 Linux](#x86-64-linux)
+    - [aarch64 Linux / Mac](#aarch64-linux--mac)
+  - [Create tar.gz archive](#create-targz-archive)
+- [Versioning](#versioning)
+- [Changelog](#changelog)
+- [Contributions](#contributions)
+- [License](#license)
 
 ### Supported features
 
@@ -19,6 +49,9 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
   - Option to ignore HTTP requests errors and always return a OK/200 status code to the remote. Helpful if the server doesn't send any response or closes the connection after a command is received (fire and forget). The error message will still be logged but at debug instead of error level
 - Send wake-on-lan magic packets to a specified mac address, ip (v4/v6) or hostname (ipv4 only)
   - Discover the mac address from an ip address or a hostname is not supported when running the integration on the remote due to sandbox limitations and may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
+- Send text over TCP
+  - This protocol is used by some home automation systems or tools like [win-remote-control](https://github.com/moefh/win-remote-control)
+  - The default timeout can be changed in the advanced setup settings
 
 ### Planned features
 
@@ -66,6 +99,12 @@ Optional payload data can be added to the request body with a specific separator
 
 If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with <https://www.urlencoder.io>)
 
+### Text over TCP
+
+This protocol is used by some home automation systems or tools like [win-remote-control](https://github.com/moefh/win-remote-control).
+
+Example: 192.168.1.1:1234, "Hello World"
+
 ## Installation
 
 ### Run on the remote as a custom integration driver
@@ -93,7 +132,7 @@ curl --location 'http://$IP/api/intg/install' \
 --form 'file=@"uc-intg-sonysdcp-$VERSION-aarch64.tar.gz"'
 ```
 
-There is also a Core API GUI available at https://_Remote-IP_/doc/core-rest. Click on Authorize to log in (username: web-configurator, password: your PIN), scroll down to POST intg/install, click on Try it out, choose a file and then click on Execute.
+There is also a Core API GUI available at https://*Remote-IP*/doc/core-rest. Click on Authorize to log in (username: web-configurator, password: your PIN), scroll down to POST intg/install, click on Try it out, choose a file and then click on Execute.
 
 Alternatively you can also use the inofficial [UC Remote Toolkit](https://github.com/albaintor/UC-Remote-Two-Toolkit)
 

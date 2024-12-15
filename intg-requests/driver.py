@@ -72,7 +72,7 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
     :return: status of the command
     """
 
-    if _params is None:
+    if not _params:
         _LOG.info(f"Received {cmd_id} command for {entity.id}")
     else:
         _LOG.info(f"Received {cmd_id} command with parameter {_params} for entity id {entity.id}")

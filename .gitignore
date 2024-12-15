@@ -401,3 +401,5 @@ FodyWeavers.xsd
 config.json
 .venv/
 manual-build+upload.sh
+text-over-tcp-receiver.py
+manual-register.sh

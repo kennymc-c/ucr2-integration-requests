@@ -1,16 +1,16 @@
 {
-  "driver_id": "requests",
-  "version": "0.4.0",
-  "release_date": "2024-11-07",
+  "driver_id": "requests-test",
+  "version": "0.5.0",
+  "release_date": "2024-12-14",
   "min_core_api": "0.24.3",
   "name": { 
-      "en": "HTTP & WOL Requests",
-      "de": "HTTP & WOL Anfragen"
+      "en": "HTTP requests, WoL & text over TCP",
+      "de": "HTTP-Anfragen, WoL & Text über TCP"
   },
   "icon": "uc:integration",
   "description": {
-      "en": "Integration to send HTTP get/post/patch/put/delete/head requests and wake-on-LAN magic packets to a specific ip or url",
-      "de": "Integration zum Senden von HTTP Get/Post/Patch/Put/Delete/Head-Anfragen und Wake-on-LAN Magic Pakets an eine bestimmte URL oder IP"
+      "en": "A network multi tool integration to send HTTP get/post/patch/put/delete/head requests, wake-on-LAN magic packets and text over tcp",
+      "de": "Eine Netzwerk Multitool-Integration zum Senden von HTTP Get/Post/Patch/Put/Delete/Head-Anfragen, Wake-on-LAN Magic Pakets und Text über TCP"
   },
   "port": 9081,
   "developer": {

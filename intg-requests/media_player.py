@@ -7,6 +7,8 @@ import logging
 import json
 from json import JSONDecodeError
 from typing import Any
+import socket
+
 from re import match, IGNORECASE
 from ipaddress import ip_address, IPv4Address, IPv6Address, AddressValueError
 import urllib3 #Needed to optionally deactivate requests ssl verify warning message
@@ -49,7 +51,8 @@ def get_mac(param: str):
 
     if param_type == "ip":
         if config.Setup.get("bundle_mode"):
-            raise OSError("Using an IP address for wake-on-lan is not supported when running the integration on the remote due to sandbox limitations. Please use the mac address instead")
+            raise OSError("Using an IP address for wake-on-lan is not supported when running the integration on the remote due to sandbox limitations. \
+Please use the mac address instead")
         else:
             try:
                 IPv4Address(param)
@@ -79,7 +82,8 @@ def get_mac(param: str):
 
     if param_type == "hostname":
         if config.Setup.get("bundle_mode"):
-            raise OSError("Using a hostname for wake-on-lan is not supported when running the integration on the remote due to sandbox limitations. Please use the mac address instead")
+            raise OSError("Using a hostname for wake-on-lan is not supported when running the integration on the remote due to sandbox limitations. \
+Please use the mac address instead")
         else:
             try:
                 param = get_mac_address(hostname=param)
@@ -89,7 +93,7 @@ def get_mac(param: str):
                 _LOG.info("Got mac address from entered hostname: " + param)
             if param == "" or param is None:
                 raise OSError("Could not convert hostname with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
-    Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
+Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
 
     if param == "00:00:00:00:00:00":
         raise OSError("Got an invalid mac address. Is the ip or host in your local network? \
@@ -100,22 +104,18 @@ Please refer to the getmac supported platforms (https://github.com/GhostofGoes/g
 
 
 
-
-
-
-
 async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None):
-    """Run a requests or wol command depending on the passed entity id and parameter"""
+    """Run a requests, wol or text over tcp command depending on the passed entity id and parameter"""
 
     try:
         cmd_param = params["source"]
     except KeyError:
         _LOG.error("Source parameter empty")
         return ucapi.StatusCodes.BAD_REQUEST
-    
+
 
     def async_rq_cmd(rq_cmd: str, url: str, data: str = None, xml: bool = False):
-        global cmd_status
+        global cmd_status #TODO Use return value instead of global
 
         cmd_status = ""
 
@@ -124,7 +124,7 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
         rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
 
         user_agent = config.Setup.get("rq_user_agent")
-        headers = {"User-Agent" : user_agent} #TODO Add integration version number to user agent
+        headers = {"User-Agent" : user_agent}
         if xml is True:
             headers.update({"Content-Type" : "application/xml"})
 
@@ -183,11 +183,49 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
                 cmd_status = ucapi.StatusCodes.OK
 
 
+    async def async_tcp_text_cmd(cmd_param:str) -> str:
+
+        address, data =cmd_param.split(",", 1) #Split only at the 1st comma to ignore all others that may be included in the text to be send
+        host, port = address.split(":")
+
+        port = int(port)
+        data = data.strip().strip('"\'')
+        timeout = config.Setup.get("tcp_text_timeout")
+
+        received = ""
+        status = ""
+
+        try:
+            reader, writer = await asyncio.open_connection(host, port)
+            writer.write((data + "\n").encode("utf-8"))
+            await writer.drain()
+
+            received = await asyncio.wait_for(reader.read(1024), timeout)
+            received = received.decode("utf-8")
+
+            _LOG.info("Sent text \"" + format(data) + "\" over TCP to " + address)
+            if received != "":
+                _LOG.info("Received data: " + format(received))
+            status = ucapi.StatusCodes.OK
+        except asyncio.TimeoutError:
+            _LOG.error("A timeout error occurred while connecting to the server")
+            _LOG.info("Please check if the client software is running on the host")
+            status = ucapi.StatusCodes.TIMEOUT
+        except Exception as e:
+            _LOG.error(e)
+            _LOG.error("An error occurred while connecting to the server")
+            _LOG.info("Please check if host and port are correct and can be reached from the network in which the integration is running")
+            status = ucapi.StatusCodes.BAD_REQUEST
+
+        return status
+
+
     if entity_id in config.Setup.rq_ids:
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
             #Needed as hyphens can not be used in function and variable names and also to keep the existing entity IDs to prevent activity/macro reconfiguration.
             rq_cmd = entity_id.replace("http-", "rq_")
 
+            #TODO Try to use the same syntax as requests module. Experiment with split parameters (e.g. just use first n appearances of a character)
             if "§" in cmd_param:
                 _LOG.info("Passed parameter contains form data")
                 url, form_string = cmd_param.split("§")
@@ -278,5 +316,16 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
             _LOG.info("Sent wake on lan magic packet to mac address(es)): " + str(macs))
             return ucapi.StatusCodes.OK
 
-        _LOG.error("Command not implemented: " + cmd_name)
-        return ucapi.StatusCodes.NOT_IMPLEMENTED
+        else:
+            _LOG.error("Command not implemented: " + cmd_name)
+            return ucapi.StatusCodes.NOT_IMPLEMENTED
+
+
+
+    if entity_id == config.Setup.get("id-tcp-text"):
+        if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
+            status = await async_tcp_text_cmd(cmd_param)
+            return status
+        else:
+            _LOG.error("Command not implemented: " + cmd_name)
+            return ucapi.StatusCodes.NOT_IMPLEMENTED
