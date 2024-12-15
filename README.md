@@ -101,7 +101,7 @@ If your actual url contains one or more of the above separators or other special
 
 ### Text over TCP
 
-This protocol is used by some home automation systems or tools like [win-remote-control](https://github.com/moefh/win-remote-control).
+This protocol is used by some home automation systems, IoT devices or tools like [win-remote-control](https://github.com/moefh/win-remote-control).
 
 Example: 192.168.1.1:1234, "Hello World"
 
