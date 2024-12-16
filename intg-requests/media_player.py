@@ -7,7 +7,7 @@ import logging
 import json
 from json import JSONDecodeError
 from typing import Any
-import socket
+import ast
 
 from re import match, IGNORECASE
 from ipaddress import ip_address, IPv4Address, IPv6Address, AddressValueError
@@ -187,37 +187,34 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
 
         address, data =cmd_param.split(",", 1) #Split only at the 1st comma to ignore all others that may be included in the text to be send
         host, port = address.split(":")
-
-        port = int(port)
-        data = data.strip().strip('"\'')
         timeout = config.Setup.get("tcp_text_timeout")
 
-        received = ""
-        status = ""
+        port = int(port)
+        data = data.strip().strip('"\'') #Remove spaces and (double) quotes at the beginning and the end
+        data = ast.literal_eval(f'"{data}"')  #Convert possible control characters like \n or \r from the string. Escaped characters (e.g. \\n) will not be converted
 
         try:
             reader, writer = await asyncio.open_connection(host, port)
             writer.write((data + "\n").encode("utf-8"))
             await writer.drain()
 
+            received = ""
             received = await asyncio.wait_for(reader.read(1024), timeout)
             received = received.decode("utf-8")
-
-            _LOG.info("Sent text \"" + format(data) + "\" over TCP to " + address)
-            if received != "":
-                _LOG.info("Received data: " + format(received))
-            status = ucapi.StatusCodes.OK
         except asyncio.TimeoutError:
             _LOG.error("A timeout error occurred while connecting to the server")
             _LOG.info("Please check if the client software is running on the host")
-            status = ucapi.StatusCodes.TIMEOUT
+            return ucapi.StatusCodes.TIMEOUT
         except Exception as e:
+            _LOG.error("An error occurred while connecting to the server:")
             _LOG.error(e)
-            _LOG.error("An error occurred while connecting to the server")
             _LOG.info("Please check if host and port are correct and can be reached from the network in which the integration is running")
-            status = ucapi.StatusCodes.BAD_REQUEST
+            return ucapi.StatusCodes.BAD_REQUEST
 
-        return status
+        _LOG.info("Sent raw text " + repr(format(data)) + " over TCP to " + address)
+        if received != "":
+            _LOG.info("Received data: " + format(received))
+        return ucapi.StatusCodes.OK
 
 
     if entity_id in config.Setup.rq_ids:
