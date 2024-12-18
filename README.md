@@ -12,13 +12,15 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 
 - [Configuration](#configuration)
 - [Usage](#usage)
-  - [Wake-on-lan](#wake-on-lan)
+  - [1 - Wake-on-lan](#1---wake-on-lan)
     - [Supported parameters](#supported-parameters)
-  - [HTTP requests](#http-requests)
+  - [2 - HTTP requests](#2---http-requests)
     - [Expected server response](#expected-server-response)
     - [Adding payload data](#adding-payload-data)
     - [Only one payload type per requests is supported](#only-one-payload-type-per-requests-is-supported)
-  - [Text over TCP](#text-over-tcp)
+  - [3 - Text over TCP](#3---text-over-tcp)
+    - [Control characters](#control-characters)
+      - [Escaping](#escaping)
 - [Installation](#installation)
   - [Run on the remote as a custom integration driver](#run-on-the-remote-as-a-custom-integration-driver)
     - [Missing firmware features](#missing-firmware-features)
@@ -67,7 +69,7 @@ During the integration setup you can change the default http request timeout of 
 
 The integration exposes a media player entity for each supported request command. These entities only support the source feature. Just enter the desired url (including http(s)://) or mac address in the source field when you configure your activity/macro sequences or activity ui.
 
-### Wake-on-lan
+### 1 - Wake-on-lan
 
 Choose the Wake on lan entity from the integration setup and add it to an activity or macro. Enter the desired hostname, mac or ip address (ipv4/v6) in the source field when you configure your activity/macro sequence or activity ui. Multiple addresses can be separated by a comma.
 
@@ -75,7 +77,7 @@ Choose the Wake on lan entity from the integration setup and add it to an activi
 
 All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) are supported (interface, port, ip_address)
 
-### HTTP requests
+### 2 - HTTP requests
 
 Choose one or more HTTP request method entities from the integration setup and add it to an activity or macro. Enter the desired url (including http(s)://) in the source field when you configure your activity/macro sequences or activity ui.
 
@@ -99,11 +101,20 @@ Optional payload data can be added to the request body with a specific separator
 
 If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with <https://www.urlencoder.io>)
 
-### Text over TCP
+### 3 - Text over TCP
 
 This protocol is used by some home automation systems, IoT devices or tools like [win-remote-control](https://github.com/moefh/win-remote-control).
 
 Example: 192.168.1.1:1234, "Hello World"
+
+#### Control characters
+
+C++ and hex style control characters are supported to e.g. add a new line (\\n or 0x0A), tab (\\t or 0x09) or a carriage return (\\r or 0x0D)
+
+##### Escaping
+
+- C++ style characters can be escaped with a single additional backslash (e.g. \\\n)
+- Hex style characters can be escaped with "0\\\\\\" (e.g. 0\\\\\\0x09)
 
 ## Installation
 

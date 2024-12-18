@@ -185,27 +185,25 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
 
     def tcp_text_process_control_data(data):
         """
-        Processes a string with hex notation and/or C++ style control characters.
-        - `0xHH` is interpreted as a control character.
-        - `\\0xHH` remains as literal `0xHH`. Use a single backslash in the remote source string because an addition backslash is added afterwards
-        - C++ escape sequences such as `\n`, `\t` are processed and can be escaped with a single backslash
+        - Hex style characters such as "0x09" are processed and can be be escaped with "0\\\" (e.g. 0\\\x09)
+        - C++ control characters such as "\n", "\t" are also processed and can be escaped with a single additional backslash (e.g. \\n)
         """
-        
-        # Schritt 1: Behandle Literal-Hex-Werte (\\0xHH) - als 0xHH beibehalten
-        def replace_literal_hex(match):
-            return match.group(0)  # Den gesamten Literal-Wert als Literal zurückgeben (einschließlich \)
 
-        # Ersetze \\0xHH (mit doppeltem Backslash) durch den Literal-Wert
+        # Search for hex style escape characters (starting with \\)
+        def replace_literal_hex(match):
+            return match.group(1)  # Den gesamten Literal-Wert als Literal zurückgeben (einschließlich \)
+
+        # replace \\0xHH (with a double backslash) through string/literal value
         data = sub(r"\\\\(0x[0-9A-Fa-f]{2})", replace_literal_hex, data)
 
-        # Schritt 2: Behandle echte Steuerzeichen (0xHH) - Steuerzeichen ersetzen
+        # Match real hex style control characters (0xHH)
         def replace_control_hex(match):
-            return chr(int(match.group(1), 16))  # Hex-Wert in Steuerzeichen umwandeln
+            return chr(int(match.group(1), 16))
 
-        # Ersetze 0xHH durch das entsprechende Steuerzeichen (nur ohne Backslash)
+        # Replace 0xHH with the corresponding control character
         data = sub(r"(?<!\\)(0x[0-9A-Fa-f]{2})", replace_control_hex, data)
 
-        # Schritt 3: Verarbeite C++-Escape-Sequenzen (\n, \t, etc.)
+        # Process C++ style control characters (\n, \t, etc.)
         data = data.encode("utf-8").decode("unicode_escape")
 
         return data
@@ -219,7 +217,6 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
         port = int(port)
         data = data.strip().strip('"\'') #Remove spaces and (double) quotes at the beginning and the end
         data = tcp_text_process_control_data(data)
-        #data = data.encode("utf-8").decode("unicode_escape") #Convert possible control characters like \n or \r from the string. Escaped characters (e.g. \\n) will not be converted
 
         try:
             reader, writer = await asyncio.open_connection(host, port)
