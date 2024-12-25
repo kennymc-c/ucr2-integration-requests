@@ -39,7 +39,8 @@ def get_mac(param: str):
         param_type = "ip"
         _LOG.debug("\""+param+"\" is an ip address. Using getmac to discover mac address")
     except ValueError:
-        is_valid_mac = match(r"([0-9A-F]{2}[:]){5}[0-9A-F]{2}|"r"([0-9A-F]{2}[-]){5}[0-9A-F]{2}",string=param,flags=IGNORECASE) #RegEx for mac addresses
+        #RegEx for mac addresses with colons or hyphens
+        is_valid_mac = match(r"([0-9A-F]{2}[:]){5}[0-9A-F]{2}|"r"([0-9A-F]{2}[-]){5}[0-9A-F]{2}",string=param,flags=IGNORECASE)
         try:
             bool(is_valid_mac.group())
             param_type = "mac"
@@ -103,6 +104,137 @@ Please refer to the getmac supported platforms (https://github.com/GhostofGoes/g
 
 
 
+def rq_cmd(rq_cmd_name: str, url: str, data: str = None, xml: bool = False):
+    """Send a requests command to the passed url with the passed data and return the status code"""
+    rq_timeout = config.Setup.get("rq_timeout")
+    rq_ssl_verify = config.Setup.get("rq_ssl_verify")
+    rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
+
+    user_agent = config.Setup.get("rq_user_agent")
+    headers = {"User-Agent" : user_agent}
+    if xml is True:
+        headers.update({"Content-Type" : "application/xml"})
+
+    _LOG.debug("rq_cmd_name: " + rq_cmd_name + ", rq_timeout: " + str(rq_timeout) + ", rq_ssl_verify: " + str(rq_ssl_verify) + \
+", rq_fire_and_forget: " + str(rq_fire_and_forget))
+
+    if rq_ssl_verify is False:
+        #Deactivate SSL verify warning message
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    try:
+        #Utilise globals()[] to be able to use a variable as a function name, save server response in a variable and catch exceptions
+        response = globals()[rq_cmd_name](url, data=data, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
+    except rq_exceptions.Timeout as t:
+        if rq_fire_and_forget is True:
+            _LOG.info("Got a timeout error but fire and forget mode is active. Return 200/OK status code to the remote")
+            _LOG.debug("Ignored error: " + str(t))
+            return ucapi.StatusCodes.OK
+        else:
+            _LOG.error("Got a timeout error from Python requests module:")
+            _LOG.error(t)
+            return ucapi.StatusCodes.TIMEOUT
+    except Exception as e:
+        if rq_fire_and_forget is True:
+            _LOG.info("Got a requests error but fire and forget mode is active. Return 200/OK status code to the remote")
+            _LOG.debug("Ignored error: " + str(e))
+            return ucapi.StatusCodes.OK
+        else:
+            _LOG.error("Got error message from Python requests module:")
+            _LOG.error(e)
+            return ucapi.StatusCodes.CONFLICT
+
+    if response.status_code == http_codes.ok:
+        _LOG.info("Sent " + rq_cmd_name + " request to: " + url)
+        if response.text != "":
+            _LOG.debug("Server response: " + response.text)
+        else:
+            _LOG.debug("Received 200 - OK status code")
+        return ucapi.StatusCodes.OK
+
+    try:
+        response.raise_for_status() #Check if status code in 400 or 500 range
+    except rq_exceptions.HTTPError as e:
+        _LOG.error("Got error message from Python requests module:")
+        _LOG.error(e)
+        if 400 <= response.status_code <= 499:
+            if response.status_code == 404:
+                if response.text != "":
+                    _LOG.debug("Server response: " + response.text)
+                return ucapi.StatusCodes.NOT_FOUND
+            return ucapi.StatusCodes.BAD_REQUEST
+        return ucapi.StatusCodes.SERVER_ERROR
+
+    if response.raise_for_status() is None:
+        _LOG.info("Received informational or redirection http status code: " + str(response.status_code))
+        if response.text != "":
+            _LOG.debug("Server response: " + response.text)
+        return ucapi.StatusCodes.OK
+
+
+
+def tcp_text_process_control_data(data):
+    """
+    - Hex style control characters such as "0x09" are processed and can be be escaped with a leading "0\\\" (e.g. 0\\\x09)
+    - C++ control characters such as "\n", "\t" are also processed and can be escaped with a leading single additional backslash (e.g. \\n)
+    """
+
+    # Search for hex style escape characters (starting with \\)
+    def replace_literal_hex(match):
+        return match.group(1)
+
+    # replace \\0xHH (with a double backslash) through string/literal value
+    data = sub(r"\\\\(0x[0-9A-Fa-f]{2})", replace_literal_hex, data)
+
+    # Match real hex style control characters (0xHH)
+    def replace_control_hex(match):
+        return chr(int(match.group(1), 16))
+
+    # Replace 0xHH with the corresponding control character
+    data = sub(r"(?<!\\)(0x[0-9A-Fa-f]{2})", replace_control_hex, data)
+
+    # Process C++ style control characters (\n, \t, etc.)
+    data = data.encode("utf-8").decode("unicode_escape")
+
+    return data
+
+
+
+async def tcp_text_cmd(cmd_param:str) -> str:
+    """Send a text over tcp command to the passed address and return the status code"""
+    address, data =cmd_param.split(",", 1) #Split only at the 1st comma to ignore all others that may be included in the text to be send
+    host, port = address.split(":")
+    timeout = config.Setup.get("tcp_text_timeout")
+
+    port = int(port)
+    data = data.strip().strip('"\'') #Remove spaces and (double) quotes at the beginning and the end
+    data = tcp_text_process_control_data(data)
+
+    try:
+        reader, writer = await asyncio.open_connection(host, port)
+        writer.write((data + "\n").encode("utf-8"))
+        await writer.drain()
+
+        received = ""
+        received = await asyncio.wait_for(reader.read(1024), timeout)
+        received = received.decode("utf-8")
+    except asyncio.TimeoutError:
+        _LOG.error("A timeout error occurred while connecting to the server")
+        _LOG.info("Please check if the client software is running on the host")
+        return ucapi.StatusCodes.TIMEOUT
+    except Exception as e:
+        _LOG.error("An error occurred while connecting to the server:")
+        _LOG.error(e)
+        _LOG.info("Please check if host and port are correct and can be reached from the network in which the integration is running")
+        return ucapi.StatusCodes.BAD_REQUEST
+
+    _LOG.info("Sent raw text " + repr(format(data)) + " over TCP to " + address)
+    if received != "":
+        _LOG.info("Received data: " + format(received))
+    return ucapi.StatusCodes.OK
+
+
+
 async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None):
     """Run a requests, wol or text over tcp command depending on the passed entity id and parameter"""
 
@@ -112,141 +244,10 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
         _LOG.error("Source parameter empty")
         return ucapi.StatusCodes.BAD_REQUEST
 
-
-    def async_rq_cmd(rq_cmd: str, url: str, data: str = None, xml: bool = False):
-        global cmd_status #TODO Use return value instead of global
-
-        cmd_status = ""
-
-        rq_timeout = config.Setup.get("rq_timeout")
-        rq_ssl_verify = config.Setup.get("rq_ssl_verify")
-        rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
-
-        user_agent = config.Setup.get("rq_user_agent")
-        headers = {"User-Agent" : user_agent}
-        if xml is True:
-            headers.update({"Content-Type" : "application/xml"})
-
-        _LOG.debug("rq_cmd: " + rq_cmd + " , rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget))
-
-        if rq_ssl_verify is False:
-            #Deactivate SSL verify warning message
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-        try:
-            r = globals()[rq_cmd](url, data=data, headers=headers, timeout=rq_timeout, verify=rq_ssl_verify)
-        except rq_exceptions.Timeout as t:
-            if rq_fire_and_forget is True:
-                _LOG.info("Got a timeout error but fire and forget mode is active. Return 200/OK status code to the remote")
-                _LOG.debug("Ignored error: " + str(t))
-                cmd_status = ucapi.StatusCodes.OK
-            else:
-                _LOG.error("Got a timeout error from Python requests module:")
-                _LOG.error(t)
-                cmd_status = ucapi.StatusCodes.TIMEOUT
-        except Exception as e:
-            if rq_fire_and_forget is True:
-                _LOG.info("Got a requests error but fire and forget mode is active. Return 200/OK status code to the remote")
-                _LOG.debug("Ignored error: " + str(e))
-                cmd_status = ucapi.StatusCodes.OK
-            else:
-                _LOG.error("Got error message from Python requests module:")
-                _LOG.error(e)
-                cmd_status = ucapi.StatusCodes.CONFLICT
-
-        if cmd_status == "":
-            if r.status_code == http_codes.ok:
-                _LOG.info("Sent " + rq_cmd + " request to: " + url)
-                if r.text != "":
-                    _LOG.debug("Server response: " + r.text)
-                else:
-                    _LOG.debug("Received 200 - OK status code")
-                cmd_status = ucapi.StatusCodes.OK
-
-            try:
-                r.raise_for_status() #Check if status code in 400 or 500 range
-            except rq_exceptions.HTTPError as e:
-                _LOG.error("Got error message from Python requests module:")
-                _LOG.error(e)
-                if 400 <= r.status_code <= 499:
-                    if r.status_code == 404:
-                        if r.text != "":
-                            _LOG.debug("Server response: " + r.text)
-                        cmd_status = ucapi.StatusCodes.NOT_FOUND
-                    cmd_status = ucapi.StatusCodes.BAD_REQUEST
-                cmd_status = ucapi.StatusCodes.SERVER_ERROR
-            if r.raise_for_status() is None:
-                _LOG.info("Received informational or redirection http status code: " + str(r.status_code))
-                if r.text != "":
-                    _LOG.debug("Server response: " + r.text)
-                cmd_status = ucapi.StatusCodes.OK
-
-
-
-    def tcp_text_process_control_data(data):
-        """
-        - Hex style characters such as "0x09" are processed and can be be escaped with "0\\\" (e.g. 0\\\x09)
-        - C++ control characters such as "\n", "\t" are also processed and can be escaped with a single additional backslash (e.g. \\n)
-        """
-
-        # Search for hex style escape characters (starting with \\)
-        def replace_literal_hex(match):
-            return match.group(1)  # Den gesamten Literal-Wert als Literal zurückgeben (einschließlich \)
-
-        # replace \\0xHH (with a double backslash) through string/literal value
-        data = sub(r"\\\\(0x[0-9A-Fa-f]{2})", replace_literal_hex, data)
-
-        # Match real hex style control characters (0xHH)
-        def replace_control_hex(match):
-            return chr(int(match.group(1), 16))
-
-        # Replace 0xHH with the corresponding control character
-        data = sub(r"(?<!\\)(0x[0-9A-Fa-f]{2})", replace_control_hex, data)
-
-        # Process C++ style control characters (\n, \t, etc.)
-        data = data.encode("utf-8").decode("unicode_escape")
-
-        return data
-
-    async def async_tcp_text_cmd(cmd_param:str) -> str:
-
-        address, data =cmd_param.split(",", 1) #Split only at the 1st comma to ignore all others that may be included in the text to be send
-        host, port = address.split(":")
-        timeout = config.Setup.get("tcp_text_timeout")
-
-        port = int(port)
-        data = data.strip().strip('"\'') #Remove spaces and (double) quotes at the beginning and the end
-        data = tcp_text_process_control_data(data)
-
-        try:
-            reader, writer = await asyncio.open_connection(host, port)
-            writer.write((data + "\n").encode("utf-8"))
-            await writer.drain()
-
-            received = ""
-            received = await asyncio.wait_for(reader.read(1024), timeout)
-            received = received.decode("utf-8")
-        except asyncio.TimeoutError:
-            _LOG.error("A timeout error occurred while connecting to the server")
-            _LOG.info("Please check if the client software is running on the host")
-            return ucapi.StatusCodes.TIMEOUT
-        except Exception as e:
-            _LOG.error("An error occurred while connecting to the server:")
-            _LOG.error(e)
-            _LOG.info("Please check if host and port are correct and can be reached from the network in which the integration is running")
-            return ucapi.StatusCodes.BAD_REQUEST
-
-        _LOG.info("Sent raw text " + repr(format(data)) + " over TCP to " + address)
-        if received != "":
-            _LOG.info("Received data: " + format(received))
-        return ucapi.StatusCodes.OK
-
-
-
     if entity_id in config.Setup.rq_ids:
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
             #Needed as hyphens can not be used in function and variable names and also to keep the existing entity IDs to prevent activity/macro reconfiguration.
-            rq_cmd = entity_id.replace("http-", "rq_")
+            rq_cmd_name = entity_id.replace("http-", "rq_")
 
             #TODO Try to use the same syntax as requests module. Experiment with split parameters (e.g. just use first n appearances of a character)
             if "§" in cmd_param:
@@ -254,11 +255,11 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
                 url, form_string = cmd_param.split("§")
                 #Convert passed string input into Python dict for requests
                 form_dict = dict(pair.split("=") for pair in form_string.split(",")) #TODO Support multiple values for a single key. Will probably require a syntax change
-                #Utilise globals()[] to be able to use a variable as a function name
-                await asyncio.gather(asyncio.to_thread(async_rq_cmd, rq_cmd, url, data=form_dict), asyncio.sleep(1))
-                return cmd_status
+                #Use asyncio.gather() to run the function in a separate thread and use asyncio.sleep(0) to prevent blocking the event loop
+                cmd_status = await asyncio.gather(asyncio.to_thread(rq_cmd, rq_cmd_name, url, data=form_dict), asyncio.sleep(0))
+                return cmd_status[0] #Return the return value of rq_cmd which is the first command in asyncio.gather()
 
-            elif "|" in cmd_param:
+            if "|" in cmd_param:
                 _LOG.info("Passed parameter contains json data")
                 url, json_string = cmd_param.split("|")
                 try:
@@ -266,23 +267,21 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
                 except JSONDecodeError as e:
                     _LOG.error("JSONDecodeError: " + str(e))
                     return ucapi.StatusCodes.CONFLICT
-                await asyncio.gather(asyncio.to_thread(async_rq_cmd, rq_cmd, url, data=json_dict), asyncio.sleep(1))
-                return cmd_status
+                cmd_status = await asyncio.gather(asyncio.to_thread(rq_cmd, rq_cmd_name, url, data=json_dict), asyncio.sleep(0))
+                return cmd_status[0]
 
-            elif "^" in cmd_param:
+            if "^" in cmd_param:
                 _LOG.info("Passed parameter contains xml data")
                 url, xml_string = cmd_param.split("^")
-                await asyncio.gather(asyncio.to_thread(async_rq_cmd, rq_cmd, url, data=xml_string, xml=True), asyncio.sleep(1))
-                return cmd_status
+                cmd_status = await asyncio.gather(asyncio.to_thread(rq_cmd, rq_cmd_name, url, data=xml_string, xml=True), asyncio.sleep(0))
+                return cmd_status[0]
 
-            else:
-                url = cmd_param
-                await asyncio.gather(asyncio.to_thread(async_rq_cmd, rq_cmd, url), asyncio.sleep(1))
-                return cmd_status
+            url = cmd_param
+            cmd_status = await asyncio.gather(asyncio.to_thread(rq_cmd, rq_cmd_name, url), asyncio.sleep(0))
+            return cmd_status[0]
 
-        else:
-            _LOG.error("Command not implemented: " + cmd_name)
-            return ucapi.StatusCodes.NOT_IMPLEMENTED
+        _LOG.error("Command not implemented: " + cmd_name)
+        return ucapi.StatusCodes.NOT_IMPLEMENTED
 
 
 
@@ -291,6 +290,7 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
 
             params = {}
             addresses = []
+            value = ""
 
             if "," in cmd_param:
                 _LOG.info("Passed parameter contains more than one address and/or wol parameters")
@@ -327,6 +327,7 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
                     macs.append(mac)
 
             try:
+                #TODO Run via asyncio.gather() to prevent potential blocking the event loop
                 send_magic_packet(*macs, **params) #Unpack macs list with * and params dicts list with **
             except ValueError as v:
                 _LOG.error(v)
@@ -339,16 +340,15 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
             _LOG.info("Sent wake on lan magic packet to mac address(es)): " + str(macs))
             return ucapi.StatusCodes.OK
 
-        else:
-            _LOG.error("Command not implemented: " + cmd_name)
-            return ucapi.StatusCodes.NOT_IMPLEMENTED
+        _LOG.error("Command not implemented: " + cmd_name)
+        return ucapi.StatusCodes.NOT_IMPLEMENTED
 
 
 
     if entity_id == config.Setup.get("id-tcp-text"):
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:
-            status = await async_tcp_text_cmd(cmd_param)
-            return status
-        else:
-            _LOG.error("Command not implemented: " + cmd_name)
-            return ucapi.StatusCodes.NOT_IMPLEMENTED
+            cmd_status = await tcp_text_cmd(cmd_param)
+            return cmd_status
+
+        _LOG.error("Command not implemented: " + cmd_name)
+        return ucapi.StatusCodes.NOT_IMPLEMENTED

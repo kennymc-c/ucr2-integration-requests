@@ -15,7 +15,7 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
   - [1 - Wake-on-lan](#1---wake-on-lan)
     - [Supported parameters](#supported-parameters)
   - [2 - HTTP requests](#2---http-requests)
-    - [Expected server response](#expected-server-response)
+    - [Expected http request server response](#expected-http-request-server-response)
     - [Adding payload data](#adding-payload-data)
     - [Only one payload type per requests is supported](#only-one-payload-type-per-requests-is-supported)
   - [3 - Text over TCP](#3---text-over-tcp)
@@ -58,32 +58,35 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 ### Planned features
 
 - Support for custom http headers
+- SSH client entity
 
-Additional smaller planned improvements are labeled with #TODO in the code
+Additional smaller planned improvements or changes are labeled with #TODO in the code
 
 ## Configuration
 
-During the integration setup you can change the default http request timeout of 2 seconds to a custom value. You also can deactivate the ssl certificate verification. This is needed for self signed ssl certificates. You can run the setup process again in the integration settings to change these settings after adding entities to the remote.
+During the integration setup you can turn on the advanced settings to change various timeouts and others entity related settings (see [Usage](#usage)). You can run the setup process again in the integration settings to change these settings after adding entities to the remote.
 
 ## Usage
 
-The integration exposes a media player entity for each supported request command. These entities only support the source feature. Just enter the desired url (including http(s)://) or mac address in the source field when you configure your activity/macro sequences or activity ui.
+The integration exposes a media player entity for each supported command. These entities only support the source feature. Just enter the needed string needed for the chosen entity in the source field when you configure your activity/macro sequences or activity ui.
 
 ### 1 - Wake-on-lan
 
-Choose the Wake on lan entity from the integration setup and add it to an activity or macro. Enter the desired hostname, mac or ip address (ipv4/v6) in the source field when you configure your activity/macro sequence or activity ui. Multiple addresses can be separated by a comma.
+Enter the desired hostname, mac or ip address (ipv4/v6) in the source field when you configure your activity/macro sequence or activity ui. Multiple addresses can be separated by a comma.
+
+*Note: When running as a custom integration on the remote itself only mac addresses are supported.*
 
 #### Supported parameters
 
-All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) are supported (interface, port, ip_address)
+All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) are supported (interface=, port=, ip_address=)
 
 ### 2 - HTTP requests
 
-Choose one or more HTTP request method entities from the integration setup and add it to an activity or macro. Enter the desired url (including http(s)://) in the source field when you configure your activity/macro sequences or activity ui.
+Enter the desired url (including http(s)://) in the source field when you configure your activity/macro sequences or activity ui. Additional payload data can be added (see below).
 
-#### Expected server response
+#### Expected http request server response
 
-For http requests your server needs to respond with a *200 OK* status or any other informational or redirection http status codes (100s, 200s or 300s). If the server's response content is not empty it will be shown in the integration log. In case of a client or server error (400s or 500s) the command will fail on the remote and the error message and status code will be shown in the integration log.
+Your server needs to respond with a *200 OK* status or any other informational or redirection http status code (100s, 200s or 300s). If the server's response content is not empty it will be shown in the integration log. In case of a client or server error (400s or 500s) the command will fail on the remote and the error message and status code will be shown in the integration log.
 
 If you activate the option to ignore HTTP requests errors in the integration setup a OK/200 status code will always be returned to the remote (fire and forget). This can be helpful if the requested server/device needs longer than the set timeout to wake up from deep sleep, generally doesn't send any response at all or closes the connection after a command is received. The error message will still be logged but at debug instead of error level.
 

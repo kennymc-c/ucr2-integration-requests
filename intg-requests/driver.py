@@ -50,7 +50,7 @@ async def add_mp(entity_id: str, entity_name: str):
         entity_id,
         entity_name,
         [ucapi.media_player.Features.SELECT_SOURCE],
-        attributes={},
+        attributes={ucapi.media_player.Attributes.STATE: ucapi.media_player.States.ON},
         cmd_handler=mp_cmd_handler
     )
 
@@ -194,7 +194,7 @@ async def main():
         _LOG.info("The configuration is stored in " + cfg_path)
 
     else:
-        logging.basicConfig(format="%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        logging.basicConfig(format="%(asctime)s.%(msecs)03d | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
         setup_logger()
 
     await setup.init()

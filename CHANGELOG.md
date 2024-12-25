@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2024-12-25
+
+### Fixed
+
+- Fixed 1 second delay between consecutive http request commands
+- Temporarily fixed a problem with the new web configurator via a workaround where all entities wrongly had the status "Unavailable" by adding an State:On attribute to the entity definitions, although they should actually be stateless
+  - After a first time setup you may still need to click on the toggle button in the entity editor in each entity to switch to the correct On state.
+  - All issues have been reported to UC as a bug as even stateless entities like these have a state shown in the new configurator and can be toggled even if they don't support this feature and only On/Off state attributes ([Issue 422](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/422))
+
 ## [0.5.1] - 2024-12-18
 
 ### Added
