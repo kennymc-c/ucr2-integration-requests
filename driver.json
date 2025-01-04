@@ -1,7 +1,7 @@
 {
   "driver_id": "requests",
-  "version": "0.5.2",
-  "release_date": "2024-12-25",
+  "version": "0.6.0",
+  "release_date": "2025-01-04",
   "min_core_api": "0.24.3",
   "name": { 
       "en": "HTTP requests, WoL & text over TCP",

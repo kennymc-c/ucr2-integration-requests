@@ -23,6 +23,7 @@ class Setup:
         "rq_ssl_verify": True,
         "rq_user_agent": "uc-intg-requests",
         "rq_fire_and_forget": False,
+        "rq_legacy": False,
         "id-get": "http-get",
         "name-get": "HTTP Get",
         "id-post": "http-post",
@@ -40,8 +41,10 @@ class Setup:
         "id-tcp-text": "tcp-text",
         "name-tcp-text": "Text over TCP"
     }
-    __setters = ["standby", "setup_complete", "setup_reconfigure", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", "bundle_mode", "cfg_path"]
-    __storers = ["setup_complete", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget"] #Skip runtime only related values in config file
+    __setters = ["standby", "setup_complete", "setup_reconfigure", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", "rq_legacy",\
+                 "bundle_mode", "cfg_path"]
+    #Skip runtime only related values in config file
+    __storers = ["setup_complete", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", "rq_legacy"]
 
     all_cmds = ["get", "post", "patch", "put", "delete", "head", "wol", "tcp-text"]
     rq_ids = [__conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"], __conf["id-delete"], __conf["id-head"]]
@@ -127,11 +130,12 @@ class Setup:
             else:
                 if "tcp_text_timeout" in configfile:
                     Setup.__conf["tcp_text_timeout"] = configfile["tcp_text_timeout"]
-                    _LOG.info("Loaded custom text over tcp timeout of " + str(configfile["tcp_text_timeout"]) + " seconds into runtime storage from " + Setup.__conf["cfg_path"])
+                    _LOG.info("Loaded custom text over tcp timeout of " + str(configfile["tcp_text_timeout"]) + " seconds \
+into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
                     _LOG.info("Skip loading custom text over tcp timeout as it has not been changed during setup. \
 The Default value of " + str(Setup.get("tcp_text_timeout")) + " seconds will be used")
-                
+
                 if "rq_user_agent" in configfile:
                     Setup.__conf["rq_user_agent"] = configfile["rq_user_agent"]
                     _LOG.info("Loaded custom http requests user agent " + str(configfile["rq_user_agent"]) + " into runtime storage from " + Setup.__conf["cfg_path"])
@@ -159,6 +163,13 @@ The Default value " + str(Setup.get("rq_ssl_verify")) + " will be used")
                 else:
                     _LOG.info("Skip loading fire_and_forget as it has not been changed during setup. \
 The Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
+
+                if "rq_legacy" in configfile:
+                    Setup.__conf["rq_legacy"] = configfile["rq_legacy"]
+                    _LOG.info("Loaded rq_legacy: " + str(configfile["rq_legacy"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
+                else:
+                    _LOG.info("Using current http requests syntax as it has not been changed during setup. \
+The Default value " + str(Setup.get("rq_legacy")) + " will be used")
 
         else:
             _LOG.info(Setup.__conf["cfg_path"] + " does not exist (yet). Please start the setup process")

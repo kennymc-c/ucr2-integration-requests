@@ -83,11 +83,12 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
             rq_ssl_verify = config.Setup.get("rq_ssl_verify")
             rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
             rq_user_agent = config.Setup.get("rq_user_agent")
+            rq_legacy = config.Setup.get("rq_legacy")
         except ValueError as v:
             _LOG.error(v)
 
         _LOG.debug("Currently stored - tcp_text_timeout: " + str(tcp_text_timeout) + " , rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: "\
-+ str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget) + ",  rq_user_agent: " + str(rq_user_agent))
++ str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget) + ",  rq_user_agent: " + str(rq_user_agent) + ",  rq_legacy: " + str(rq_legacy))
 
         return ucapi.RequestUserInput(
             {
@@ -167,7 +168,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
                                         }
                             },
                 },
-                                {
+                {
                     "id": "rq_fire_and_forget",
                     "label": {
                         "en": "Ignore HTTP requests errors (fire and forget):",
@@ -175,6 +176,17 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
                         },
                     "field": {"checkbox": {
                                         "value": rq_fire_and_forget
+                                        }
+                            },
+                },
+                {
+                    "id": "rq_legacy",
+                    "label": {
+                        "en": "Use http requests legacy syntax:",
+                        "de": "Legacy-Syntax für HTTP-Anfragen verwenden:"
+                        },
+                    "field": {"checkbox": {
+                                        "value": rq_legacy
                                         }
                             },
                 },
@@ -207,6 +219,7 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
     rq_ssl_verify = msg.input_values["rq_ssl_verify"]
     rq_fire_and_forget = msg.input_values["rq_fire_and_forget"]
     rq_user_agent = msg.input_values["rq_user_agent"]
+    rq_legacy = msg.input_values["rq_legacy"]
 
     rq_timeout = int(rq_timeout)
     tcp_text_timeout = int(tcp_text_timeout)
@@ -267,6 +280,24 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
             _LOG.error(e)
             config.Setup.set("setup_complete", False)
             return ucapi.SetupError()
+        _LOG.info("Fire and forget mode deactivated. Return the actual status code")
+
+    if rq_legacy == "true": #Boolean in quotes as all values are returned as strings
+        try:
+            config.Setup.set("rq_legacy", True)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
+        _LOG.info("Legacy syntax activated")
+    else:
+        try:
+            config.Setup.set("rq_legacy", False)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
+        _LOG.info("Legacy syntax deactivated")
 
     if not config.Setup.get("setup_reconfigure"):
         for cmd in config.Setup.all_cmds:

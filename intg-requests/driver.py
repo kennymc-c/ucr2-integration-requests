@@ -19,6 +19,8 @@ _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 loop = asyncio.get_event_loop()
 api = ucapi.IntegrationAPI(loop)
 
+#TODO Change icon in driver.json from uc:integration to uc:webhook once the new configurator that includes this icon is out of beta
+
 
 
 async def startcheck():

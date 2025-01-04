@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-01-04
+
+### Breaking changes
+
+- HTTP requests entities can now be used with most parameters and the same syntax as the Python Requests module. This simplifies the usage and adds the possibility of e.g. adding more complex json payload or custom headers (e.g. for server authentication). More infos and examples can be found here: [Additional http requests parameters](/README.md#additional-command-parameters)
+  - The previous syntax by using separator characters (§, | etc) is now called legacy syntax and can still be used by activating the legacy syntax option in the advanced setup which is off by default. Please keep in mind that the use of the legacy syntax will be removed in a future version
+
+### Added
+
+- The global settings for Fire and forget mode and timeouts for HTTP requests can now be overwritten as a parameter in each http request command. E.g. use ffg=True to only activate fire and forget for a specific command.
+
 ## [0.5.2] - 2024-12-25
 
 ### Fixed

@@ -10,13 +10,18 @@ Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests), [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) and [getmac](https://github.com/GhostofGoes/getmac).
 
+- [Supported entity features](#supported-entity-features)
+- [Planned features](#planned-features)
 - [Configuration](#configuration)
 - [Usage](#usage)
   - [1 - Wake-on-lan](#1---wake-on-lan)
     - [Supported parameters](#supported-parameters)
   - [2 - HTTP requests](#2---http-requests)
     - [Expected http request server response](#expected-http-request-server-response)
-    - [Adding payload data](#adding-payload-data)
+    - [Additional command parameters](#additional-command-parameters)
+    - [SSL verification \& Fire and forget mode](#ssl-verification--fire-and-forget-mode)
+    - [Use case examples](#use-case-examples)
+    - [Legacy syntax used before v0.6.0 (⚠️ Will be removed in a future version)](#legacy-syntax-used-before-v060-️-will-be-removed-in-a-future-version)
     - [Only one payload type per requests is supported](#only-one-payload-type-per-requests-is-supported)
   - [3 - Text over TCP](#3---text-over-tcp)
     - [Control characters](#control-characters)
@@ -42,22 +47,23 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 - [Contributions](#contributions)
 - [License](#license)
 
-### Supported features
+## Supported entity features
 
 - Send http get, post, patch, put, delete & head requests to a specified url
-  - Add form, json or xml payload (see [adding payload data](#adding-payload-data))
-  - Define a global custom timeout (default is 2 seconds)
-  - Deactivate ssl/tls verification for self signed certificates
-  - Option to ignore HTTP requests errors and always return a OK/200 status code to the remote. Helpful if the server doesn't send any response or closes the connection after a command is received (fire and forget). The error message will still be logged but at debug instead of error level
-- Send wake-on-lan magic packets to a specified mac address, ip (v4/v6) or hostname (ipv4 only)
-  - Discover the mac address from an ip address or a hostname is not supported when running the integration on the remote due to sandbox limitations and may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
+  - Add [additional command parameters]((#additional-command-parameters))
+  - Option to ignore HTTP requests errors and always return a OK/200 status code to the remote
+    - Helpful if the server doesn't send any response or closes the connection after a command is received (fire and forget). The error message will still be logged but at debug instead of error level
+- Send wake-on-lan magic packets to one or more mac addresses, ips (v4/v6) or hostnames (ipv4 only)
+  - [Supported parameters](#supported-parameters)
+  - Discover the mac address from an ip address or a hostname
+    - Not supported when running the integration on the remote due to sandbox limitations and may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
 - Send text over TCP
   - This protocol is used by some home automation systems or tools like [win-remote-control](https://github.com/moefh/win-remote-control)
+  - Support for c++ and hex style control characters
   - The default timeout can be changed in the advanced setup settings
 
-### Planned features
+## Planned features
 
-- Support for custom http headers
 - SSH client entity
 
 Additional smaller planned improvements or changes are labeled with #TODO in the code
@@ -65,6 +71,8 @@ Additional smaller planned improvements or changes are labeled with #TODO in the
 ## Configuration
 
 During the integration setup you can turn on the advanced settings to change various timeouts and others entity related settings (see [Usage](#usage)). You can run the setup process again in the integration settings to change these settings after adding entities to the remote.
+
+For http requests it's also possible to temporally overwrite one or more settings for a specific command by adding [additional command parameters](#additional-command-parameters).
 
 ## Usage
 
@@ -82,17 +90,40 @@ All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) a
 
 ### 2 - HTTP requests
 
-Enter the desired url (including http(s)://) in the source field when you configure your activity/macro sequences or activity ui. Additional payload data can be added (see below).
+Enter the desired url (including http(s)://) in the source field when you configure your activity/macro sequences or activity ui. Additional parameters can be added (see below).
 
 #### Expected http request server response
 
 Your server needs to respond with a *200 OK* status or any other informational or redirection http status code (100s, 200s or 300s). If the server's response content is not empty it will be shown in the integration log. In case of a client or server error (400s or 500s) the command will fail on the remote and the error message and status code will be shown in the integration log.
 
-If you activate the option to ignore HTTP requests errors in the integration setup a OK/200 status code will always be returned to the remote (fire and forget). This can be helpful if the requested server/device needs longer than the set timeout to wake up from deep sleep, generally doesn't send any response at all or closes the connection after a command is received. The error message will still be logged but at debug instead of error level.
+If you activate the fire and forget mode the remote will always receive a *200 OK* status code (see below).
 
-#### Adding payload data
+#### Additional command parameters
 
-Optional payload data can be added to the request body with a specific separator charter
+Almost all parameters from the Python requests module like `timeout`, `verify`, `data`, `json` or `headers` are supported (see [Python requests module parameters](https://requests.readthedocs.io/en/latest/api/#requests.request)) although not all of them have been tested with this integration. Simply separate them with a comma.
+
+When using one or more parameters you need to use the `url` parameter for the url itself as well. If a parameter value contains commas, equal signs or quotes put it in double quotes and use single quotes inside (see examples below).
+
+#### SSL verification & Fire and forget mode
+
+When using a self signed ssl certificate you can globally deactivate ssl cert verification in the advanced setup or temporally for specific commands by using `verify=False` as a command parameter.
+
+If you activate the option to ignore HTTP requests errors in the integration setup or by adding `ffg=True` as a command parameter a OK/200 status code will always be returned to the remote (fire and forget). This can be helpful if the requested server/device needs longer than the set timeout to wake up from deep sleep, generally doesn't send any response at all or closes the connection after a command is received. The error message will still be logged but at debug instead of error level.
+
+#### Use case examples
+
+| Use Case                     | Parameters     | Example                                                      |
+|-----------------------------------|---------------|--------------------------------------------------------------|
+| Temporally use a different timeout and activate fire and forget mode | `timeout` and `ffg`  |  `url="https://httpbin.org/get", timeout=5, ffg=True`  |
+| Adding form payload data` | `data`  |  `url="https://httpbin.org/post", data="key1=value1,key2=value2"`  |
+| Adding json payload data (content type is set automatically)                 | `json`    |  `url="https://httpbin.org/post", json="{'key1':'value1','key2':'value2'}"` |
+| Adding xml payload data                   | `data` and `headers` |  `url="https://httpbin.org/post", data="<Tests Id='01'><Test TestId='01'><Name>Command name</Name></Test></Tests>", headers="{'Content-Type':'application/xml'}"` |
+
+#### Legacy syntax used before v0.6.0 (⚠️ Will be removed in a future version)
+<details>
+<summary>Legacy syntax</summary>
+
+Optional payload data can be added to the request body with a specific separator character:
 
 | Content type                      | Separator     | Example                                                      | Notes |
 |-----------------------------------|---------------|--------------------------------------------------------------|-------|
@@ -103,6 +134,7 @@ Optional payload data can be added to the request body with a specific separator
 #### Only one payload type per requests is supported
 
 If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with <https://www.urlencoder.io>)
+</details>
 
 ### 3 - Text over TCP
 
