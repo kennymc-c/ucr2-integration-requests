@@ -58,8 +58,8 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
   - Discover the mac address from an ip address or a hostname
     - Not supported when running the integration on the remote due to sandbox limitations and may not work on all systems. Please refer to the [getmac supported platforms](https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)
 - Send text over TCP
-  - This protocol is used by some home automation systems or tools like [win-remote-control](https://github.com/moefh/win-remote-control)
-  - Support for c++ and hex style control characters
+  - This method can be used with some home automation systems, tools like [win-remote-control](https://github.com/moefh/win-remote-control) or for protocols like PJLink (used by a lot of projector brands like JVC, Epson or Optoma)
+  - Support for c++ and hex style control characters (e.g. new line, carriage return, tabulator etc.)
   - The default timeout can be changed in the advanced setup settings
 
 ## Planned features
@@ -138,9 +138,11 @@ If your actual url contains one or more of the above separators or other special
 
 ### 3 - Text over TCP
 
-This protocol is used by some home automation systems, IoT devices or tools like [win-remote-control](https://github.com/moefh/win-remote-control).
+This method can be used with some home automation systems, tools like [win-remote-control](https://github.com/moefh/win-remote-control) or for certain protocols like [PJLink](https://pjlink.jbmia.or.jp/english/index.htmlPJLink) (used by a lot of projector brands like JVC, Epson or Optoma)
 
-Example: 192.168.1.1:1234, "Hello World"
+- Generic Example: 192.168.1.1:1234, "Hello World"
+- PJLink Power On Example: 192.168.1.1:4352,"%1POWR 1\r"
+  - Other PJLink commands can be found in the [PJLink command descriptions](https://pjlink.jbmia.or.jp/english/data_cl2/PJLink_5-1.pdf) (from page 17)
 
 #### Control characters
 
