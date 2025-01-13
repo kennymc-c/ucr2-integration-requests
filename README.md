@@ -21,8 +21,7 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
     - [Additional command parameters](#additional-command-parameters)
     - [SSL verification \& Fire and forget mode](#ssl-verification--fire-and-forget-mode)
     - [Use case examples](#use-case-examples)
-    - [Legacy syntax used before v0.6.0 (⚠️ Will be removed in a future version)](#legacy-syntax-used-before-v060-️-will-be-removed-in-a-future-version)
-    - [Only one payload type per requests is supported](#only-one-payload-type-per-requests-is-supported)
+    - [Legacy syntax](#legacy-syntax)
   - [3 - Text over TCP](#3---text-over-tcp)
     - [Control characters](#control-characters)
       - [Escaping](#escaping)
@@ -30,7 +29,7 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
   - [Run on the remote as a custom integration driver](#run-on-the-remote-as-a-custom-integration-driver)
     - [Missing firmware features](#missing-firmware-features)
     - [Download integration driver](#download-integration-driver)
-    - [Install custom integration driver on the remote](#install-custom-integration-driver-on-the-remote)
+    - [Upload \& installation](#upload--installation)
       - [Upload via Core API or 3rd party tools](#upload-via-core-api-or-3rd-party-tools)
   - [Run on a separate device as an external integration driver](#run-on-a-separate-device-as-an-external-integration-driver)
     - [Bare metal/VM](#bare-metalvm)
@@ -76,11 +75,11 @@ For http requests it's also possible to temporally overwrite one or more setting
 
 ## Usage
 
-The integration exposes a media player entity for each supported command. These entities only support the source feature. Just enter the needed string needed for the chosen entity in the source field when you configure your activity/macro sequences or activity ui.
+The integration exposes a media player entity for each supported command. These entities only support the source feature. Just enter the needed data for the chosen entity (see below) in the source field after adding the input source command to your activity/macro sequence, user interface or button mapping.
 
 ### 1 - Wake-on-lan
 
-Enter the desired hostname, mac or ip address (ipv4/v6) in the source field when you configure your activity/macro sequence or activity ui. Multiple addresses can be separated by a comma.
+Enter the desired hostname, mac or ip address (ipv4/v6). Multiple addresses can be separated by a comma.
 
 *Note: When running as a custom integration on the remote itself only mac addresses are supported.*
 
@@ -90,7 +89,7 @@ All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) a
 
 ### 2 - HTTP requests
 
-Enter the desired url (including http(s)://) in the source field when you configure your activity/macro sequences or activity ui. Additional parameters can be added (see below).
+Enter the desired url (including http(s)://). Additional parameters can be added (see below).
 
 #### Expected http request server response
 
@@ -119,19 +118,22 @@ If you activate the option to ignore HTTP requests errors in the integration set
 | Adding json payload data (content type is set automatically)                 | `json`    |  `url="https://httpbin.org/post", json="{'key1':'value1','key2':'value2'}"` |
 | Adding xml payload data                   | `data` and `headers` |  `url="https://httpbin.org/post", data="<Tests Id='01'><Test TestId='01'><Name>Command name</Name></Test></Tests>", headers="{'Content-Type':'application/xml'}"` |
 
-#### Legacy syntax used before v0.6.0 (⚠️ Will be removed in a future version)
+#### Legacy syntax
+
+⚠️ Used before v0.6.0 and support will be removed in a future version
+
 <details>
 <summary>Legacy syntax</summary>
 
-Optional payload data can be added to the request body with a specific separator character:
+Optional payload data can be added to the request body with a specific separator character.
+
+⚠️ Only one payload type per requests is supported
 
 | Content type                      | Separator     | Example                                                      | Notes |
 |-----------------------------------|---------------|--------------------------------------------------------------|-------|
 | `application/x-www-form-urlencoded` | `§` (paragraph) |  `https://httpbin.org/post§key1=value1,key2=value2`            | Multiple values for a single key are currently not supported. |
 | `application/json`                 | `\|` (pipe)     |  `https://httpbin.org/post\|{"key1":"value1","key2":"value2"}` | |
 | `application/xml`                   | `^` (caret)     |  `https://httpbin.org/post^<Tests Id="01"><Test TestId="01"><Name>Command name</Name></Test></Tests>` | |
-
-#### Only one payload type per requests is supported
 
 If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with <https://www.urlencoder.io>)
 </details>
@@ -162,13 +164,13 @@ C++ and hex style control characters are supported to e.g. add a new line (\\n o
 #### Missing firmware features
 
 - The configuration file of custom integrations are not included in backups.
-- You currently can't update custom integrations. You need to delete the integration from the integrations menu first and then re-upload the new version. Do not edit any activity or macros that includes entities from this integration after you removed the integration and wait until the new version has been uploaded and installed. You also need to add re-add entities to the main pages after the update as they are automatically removed. An update function will probably be added once the custom integrations feature will be available in stable firmware releases.
+- You currently can't update custom integrations. You need to delete the integration from the integrations menu first and then re-upload the new version. Do not edit any activity or macros that includes entities from this integration after you removed the integration and wait until the new version has been uploaded and installed. You also need to re-add entities to the main pages after the update as they are automatically removed. An update function will probably be added once the custom integrations feature will be available in stable firmware releases.
 
 #### Download integration driver
 
 Download the uc-intg-requests-x.x.x-aarch64.tar.gz archive in the assets section from the [latest release](https://github.com/kennymc-c/ucr2-integration-requests/releases/latest)
 
-#### Install custom integration driver on the remote
+#### Upload & installation
 
 Since firmware version 2.2.0 you can upload custom integrations in the web configurator. Go to integrations, click on install custom and choose the downloaded tar.gz file
 
