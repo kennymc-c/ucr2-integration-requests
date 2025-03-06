@@ -111,6 +111,8 @@ If you activate the option to ignore HTTP requests errors in the integration set
 
 #### Use case examples
 
+*Note: Booleans in json data have to written with an upper case first letter (True / False) as they automatically get back converted to a valid lower case json boolean.*
+
 | Use Case                     | Parameters     | Example                                                      |
 |-----------------------------------|---------------|--------------------------------------------------------------|
 | Temporally use a different timeout and activate fire and forget mode | `timeout` and `ffg`  |  `url="https://httpbin.org/get", timeout=5, ffg=True`  |
@@ -135,7 +137,7 @@ Optional payload data can be added to the request body with a specific separator
 | `application/json`                 | `\|` (pipe)     |  `https://httpbin.org/post\|{"key1":"value1","key2":"value2"}` | |
 | `application/xml`                   | `^` (caret)     |  `https://httpbin.org/post^<Tests Id="01"><Test TestId="01"><Name>Command name</Name></Test></Tests>` | |
 
-If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with <https://www.urlencoder.io>)
+If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with <https://www.urlencoder.io>).
 </details>
 
 ### 3 - Text over TCP
