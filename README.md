@@ -18,6 +18,7 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
     - [Supported parameters](#supported-parameters)
   - [2 - HTTP requests](#2---http-requests)
     - [Expected http request server response](#expected-http-request-server-response)
+    - [Server response sensor entity](#server-response-sensor-entity)
     - [Additional command parameters](#additional-command-parameters)
     - [SSL verification \& Fire and forget mode](#ssl-verification--fire-and-forget-mode)
     - [Use case examples](#use-case-examples)
@@ -97,6 +98,10 @@ Your server needs to respond with a *200 OK* status or any other informational o
 
 If you activate the fire and forget mode the remote will always receive a *200 OK* status code (see below).
 
+#### Server response sensor entity
+
+The integration also exposes a sensor entity that shows the server response from the last executed http request command. The output can be parsed to only show a specific part of the response message using regular expressions. These can be configured in the advanced setup. Sites like [regex101.com](https://regex101.com) can help you with finding matching expressions. By default the complete response message will be used if no regular expression has been set or no matches have been found.
+
 #### Additional command parameters
 
 Almost all parameters from the Python requests module like `timeout`, `verify`, `data`, `json` or `headers` are supported (see [Python requests module parameters](https://requests.readthedocs.io/en/latest/api/#requests.request)) although not all of them have been tested with this integration. Simply separate them with a comma.
@@ -111,7 +116,7 @@ If you activate the option to ignore HTTP requests errors in the integration set
 
 #### Use case examples
 
-*Note: Booleans in json data have to written with an upper case first letter (True / False) as they automatically get back converted to a valid lower case json boolean.*
+*Note: Booleans in json data have to be written in Python style with an upper case first letter (True / False). They automatically get back converted to a valid lower case json boolean.*
 
 | Use Case                     | Parameters     | Example                                                      |
 |-----------------------------------|---------------|--------------------------------------------------------------|

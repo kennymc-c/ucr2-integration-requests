@@ -22,6 +22,7 @@ from wakeonlan import send_magic_packet
 from getmac import get_mac_address
 
 import config
+import sensor
 
 _LOG = logging.getLogger(__name__)
 
@@ -261,6 +262,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
         _LOG.info("Sent http-" + method + " request to: " + url)
         if response.text != "":
             _LOG.info("Server response: " + response.text)
+            sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), response.text)
         else:
             _LOG.debug("Received 200 - OK status code")
         return ucapi.StatusCodes.OK
@@ -274,6 +276,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
             if response.status_code == 404:
                 if response.text != "":
                     _LOG.info("Server response: " + response.text)
+                    sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), response.text)
                 return ucapi.StatusCodes.NOT_FOUND
             return ucapi.StatusCodes.BAD_REQUEST
         return ucapi.StatusCodes.SERVER_ERROR
@@ -281,7 +284,8 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
     if response.raise_for_status() is None:
         _LOG.info("Received informational or redirection http status code: " + str(response.status_code))
         if response.text != "":
-            _LOG.info("Server response: " + response.text)
+            _LOG.info("Server response: " + response)
+            sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), response.text)
         return ucapi.StatusCodes.OK
 
 

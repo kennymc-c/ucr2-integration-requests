@@ -19,8 +19,6 @@ _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 loop = asyncio.get_event_loop()
 api = ucapi.IntegrationAPI(loop)
 
-#TODO Change icon in driver.json from uc:integration to uc:webhook once the new configurator that includes this icon is out of beta
-
 
 
 async def startcheck():
@@ -35,7 +33,7 @@ async def startcheck():
         raise SystemExit(0) from o
 
     if config.Setup.get("setup_complete"):
-        await setup.add_mp_all()
+        await setup.add_all_entities()
 
 
 
@@ -58,7 +56,7 @@ async def add_mp(entity_id: str, entity_name: str):
 
     api.available_entities.add(definition)
 
-    _LOG.info("Added media player entity with id " + entity_id + " and name " + entity_name)
+    _LOG.info("Added media player entity with id " + entity_id + " and name " + str(entity_name))
 
 
 

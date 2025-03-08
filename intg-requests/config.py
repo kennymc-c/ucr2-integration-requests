@@ -24,6 +24,12 @@ class Setup:
         "rq_user_agent": "uc-intg-requests",
         "rq_fire_and_forget": False,
         "rq_legacy": False,
+        "rq_response_regex": "",
+        "id-rq-sensor": "http-response",
+        "name-rq-sensor": {
+                        "en": "HTTP Request Response",
+                        "de": "HTTP Anfrage-Antwort"
+                        },
         "id-get": "http-get",
         "name-get": "HTTP Get",
         "id-post": "http-post",
@@ -39,21 +45,24 @@ class Setup:
         "id-wol": "wol",
         "name-wol": "Wake on LAN",
         "id-tcp-text": "tcp-text",
-        "name-tcp-text": "Text over TCP"
+        "name-tcp-text": {
+                        "en": "Text over TCP",
+                        "de": "Text über TCP"
+                        },
     }
-    __setters = ["standby", "setup_complete", "setup_reconfigure", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", "rq_legacy",\
-                 "bundle_mode", "cfg_path"]
+    __setters = ["standby", "setup_complete", "setup_reconfigure", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", \
+                 "rq_fire_and_forget", "rq_legacy", "rq_response_regex", "bundle_mode", "cfg_path"]
     #Skip runtime only related values in config file
-    __storers = ["setup_complete", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", "rq_legacy"]
+    __storers = ["setup_complete", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", "rq_legacy", "rq_response_regex"]
 
     all_cmds = ["get", "post", "patch", "put", "delete", "head", "wol", "tcp-text"]
-    rq_ids = [__conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"], __conf["id-delete"], __conf["id-head"]]
-    rq_names = [__conf["name-get"], __conf["name-post"], __conf["name-patch"], __conf["name-put"], __conf["name-delete"], __conf["name-head"]]
+    rq_ids = [__conf["id-rq-sensor"], __conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"], __conf["id-delete"], __conf["id-head"]]
+    rq_names = [__conf["name-rq-sensor"], __conf["name-get"], __conf["name-post"], __conf["name-patch"], __conf["name-put"], __conf["name-delete"], __conf["name-head"]]
 
     @staticmethod
     def get(key):
         """Get the value from the specified key in __conf"""
-        if Setup.__conf[key] == "":
+        if Setup.__conf[key] == "" and key is not "rq_response_regex": #rq_response_regex can be empty
             raise ValueError("Got empty value for " + key + " from config storage")
         return Setup.__conf[key]
 
@@ -168,8 +177,14 @@ The Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
                     Setup.__conf["rq_legacy"] = configfile["rq_legacy"]
                     _LOG.info("Loaded rq_legacy: " + str(configfile["rq_legacy"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
-                    _LOG.info("Using current http requests syntax as it has not been changed during setup. \
+                    _LOG.info("Using the default http requests syntax as it has not been changed during setup. \
 The Default value " + str(Setup.get("rq_legacy")) + " will be used")
+                    
+                if "rq_response_regex" in configfile:
+                    Setup.__conf["rq_response_regex"] = configfile["rq_response_regex"]
+                    _LOG.info("Loaded rq_response_regex: " + str(configfile["rq_response_regex"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
+                else:
+                    _LOG.info("No regular expression has not been set during setup. The complete http request response will be sent to the http request response sensor")
 
         else:
             _LOG.info(Setup.__conf["cfg_path"] + " does not exist (yet). Please start the setup process")

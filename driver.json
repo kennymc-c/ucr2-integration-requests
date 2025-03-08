@@ -1,13 +1,13 @@
 {
   "driver_id": "requests",
-  "version": "0.6.0",
-  "release_date": "2025-01-04",
+  "version": "0.7.0",
+  "release_date": "2025-03-08",
   "min_core_api": "0.24.3",
   "name": { 
       "en": "HTTP requests, WoL & text over TCP",
       "de": "HTTP-Anfragen, WoL & Text über TCP"
   },
-  "icon": "uc:integration",
+  "icon": "uc:webhook",
   "description": {
       "en": "A network multi tool integration to send HTTP get/post/patch/put/delete/head requests, wake-on-LAN magic packets and text over tcp",
       "de": "Eine Netzwerk Multitool-Integration zum Senden von HTTP Get/Post/Patch/Put/Delete/Head-Anfragen, Wake-on-LAN Magic Pakets und Text über TCP"

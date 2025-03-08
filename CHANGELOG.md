@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-03-08
+
+### Added
+
+- Added a sensor entity to show the http request server response message. For more infos see: [Server response sensor entity](/README.md#server-response-sensor-entity)
+  
+### Changed
+
+- Changed the default integration icon from uc:integration to uc:webhook. This new icon is only available from firmware 2.2.0 or newer
+- Translated some default entity names
+
 ## [0.6.0] - 2025-01-04
 
 ### Breaking changes

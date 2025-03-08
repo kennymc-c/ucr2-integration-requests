@@ -8,6 +8,7 @@ import ucapi
 
 import config
 import driver
+import sensor
 
 _LOG = logging.getLogger(__name__)
 
@@ -19,8 +20,8 @@ async def init():
 
 
 
-async def add_mp_all():
-    """Adds a media player entity for each configured command in config.py"""
+async def add_all_entities():
+    """Adds a media player entity for each configured command in config.py and the http response sensor entity"""
     for cmd in config.Setup.all_cmds:
         try:
             entity_id = config.Setup.get("id-"+cmd)
@@ -33,6 +34,8 @@ async def add_mp_all():
         else:
             #Only works when add_mp is called outside of driver.py. Otherwise an entity is not available api warning is shown after adding all entities
             await driver.add_mp(entity_id, entity_name)
+
+    await sensor.add_rq_sensor(config.Setup.get("id-rq-sensor"), config.Setup.get("name-rq-sensor"))
 
 
 
@@ -83,12 +86,15 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
             rq_ssl_verify = config.Setup.get("rq_ssl_verify")
             rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
             rq_user_agent = config.Setup.get("rq_user_agent")
+            #TODO Remove legacy syntax in a future version
             rq_legacy = config.Setup.get("rq_legacy")
+            rq_response_regex = config.Setup.get("rq_response_regex")
         except ValueError as v:
             _LOG.error(v)
 
-        _LOG.debug("Currently stored - tcp_text_timeout: " + str(tcp_text_timeout) + " , rq_timeout: " + str(rq_timeout) + " , rq_ssl_verify: "\
-+ str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget) + ",  rq_user_agent: " + str(rq_user_agent) + ",  rq_legacy: " + str(rq_legacy))
+        _LOG.debug("Currently stored - tcp_text_timeout: " + str(tcp_text_timeout) + " , rq_timeout: " + str(rq_timeout) + " , \
+rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget) + ", \
+rq_user_agent: " + str(rq_user_agent) + ",  rq_legacy: " + str(rq_legacy) + ", rq_response_regex: " + str(rq_response_regex))
 
         return ucapi.RequestUserInput(
             {
@@ -158,6 +164,17 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
                             }
                 },
                 {
+                    "id": "rq_response_regex",
+                    "label": {
+                        "en": "Regular expression for parsing the HTTP request sensor response:",
+                        "de": "Regulärer Ausdruck zum Parsen der HTTP-Anfrage-Sensorantwort:"
+                        },
+                    "field": {"text": {
+                                        "value": rq_response_regex
+                                        }
+                            },
+                },
+                {
                     "id": "rq_ssl_verify",
                     "label": {
                         "en": "Verify HTTP SSL certificates:",
@@ -194,7 +211,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         )
 
     if not config.Setup.get("setup_reconfigure"):
-        await add_mp_all()
+        await add_all_entities()
     else:
         _LOG.info("Skip adding available entities during reconfiguration setup")
 
@@ -219,7 +236,9 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
     rq_ssl_verify = msg.input_values["rq_ssl_verify"]
     rq_fire_and_forget = msg.input_values["rq_fire_and_forget"]
     rq_user_agent = msg.input_values["rq_user_agent"]
+    #TODO Remove legacy syntax in a future version
     rq_legacy = msg.input_values["rq_legacy"]
+    rq_response_regex = msg.input_values["rq_response_regex"]
 
     rq_timeout = int(rq_timeout)
     tcp_text_timeout = int(tcp_text_timeout)
@@ -247,6 +266,14 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
         config.Setup.set("setup_complete", False)
         return ucapi.SetupError()
     _LOG.info("Http requests user agent: \"" +  str(rq_user_agent) + "\"")
+
+    try:
+        config.Setup.set("rq_response_regex", rq_response_regex)
+    except Exception as e:
+        _LOG.error(e)
+        config.Setup.set("setup_complete", False)
+        return ucapi.SetupError()
+    _LOG.info("Http request response regular expression: \"" +  str(rq_response_regex) + "\"")
 
     if rq_ssl_verify == "true": #Boolean in quotes as all values are returned as strings
         try:
@@ -282,6 +309,7 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
             return ucapi.SetupError()
         _LOG.info("Fire and forget mode deactivated. Return the actual status code")
 
+    #TODO Remove legacy syntax in a future version
     if rq_legacy == "true": #Boolean in quotes as all values are returned as strings
         try:
             config.Setup.set("rq_legacy", True)
@@ -300,10 +328,7 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
         _LOG.info("Legacy syntax deactivated")
 
     if not config.Setup.get("setup_reconfigure"):
-        for cmd in config.Setup.all_cmds:
-            entity_id = config.Setup.get("id-"+cmd)
-            entity_name = config.Setup.get("name-"+cmd)
-            await driver.add_mp(entity_id, entity_name)
+        await add_all_entities()
     else:
         _LOG.info("Skip adding available entities during reconfiguration")
 
