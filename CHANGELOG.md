@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2025-03-16
+
+### Changed
+
+- Http request responses are now also used for the media_title attribute of the associated request method's media player entity. This allows you to add a media player widget to an activity and see the response within an activity because you can't add sensors to activities as there's no widget for them.
+
 ## [0.7.0] - 2025-03-08
 
 ### Added

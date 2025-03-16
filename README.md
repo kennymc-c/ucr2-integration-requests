@@ -17,11 +17,11 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
   - [1 - Wake-on-lan](#1---wake-on-lan)
     - [Supported parameters](#supported-parameters)
   - [2 - HTTP requests](#2---http-requests)
-    - [Expected http request server response](#expected-http-request-server-response)
-    - [Server response sensor entity](#server-response-sensor-entity)
+    - [Expected http request server response code](#expected-http-request-server-response-code)
     - [Additional command parameters](#additional-command-parameters)
     - [SSL verification \& Fire and forget mode](#ssl-verification--fire-and-forget-mode)
     - [Use case examples](#use-case-examples)
+    - [Show (parts) of the server response text in the remote ui](#show-parts-of-the-server-response-text-in-the-remote-ui)
     - [Legacy syntax](#legacy-syntax)
   - [3 - Text over TCP](#3---text-over-tcp)
     - [Control characters](#control-characters)
@@ -92,15 +92,11 @@ All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) a
 
 Enter the desired url (including http(s)://). Additional parameters can be added (see below).
 
-#### Expected http request server response
+#### Expected http request server response code
 
 Your server needs to respond with a *200 OK* status or any other informational or redirection http status code (100s, 200s or 300s). If the server's response content is not empty it will be shown in the integration log. In case of a client or server error (400s or 500s) the command will fail on the remote and the error message and status code will be shown in the integration log.
 
 If you activate the fire and forget mode the remote will always receive a *200 OK* status code (see below).
-
-#### Server response sensor entity
-
-The integration also exposes a sensor entity that shows the server response from the last executed http request command. The output can be parsed to only show a specific part of the response message using regular expressions. These can be configured in the advanced setup. Sites like [regex101.com](https://regex101.com) can help you with finding matching expressions. By default the complete response message will be used if no regular expression has been set or no matches have been found.
 
 #### Additional command parameters
 
@@ -124,6 +120,12 @@ If you activate the option to ignore HTTP requests errors in the integration set
 | Adding form payload data` | `data`  |  `url="https://httpbin.org/post", data="key1=value1,key2=value2"`  |
 | Adding json payload data (content type is set automatically)                 | `json`    |  `url="https://httpbin.org/post", json="{'key1':'value1','key2':'value2'}"` |
 | Adding xml payload data                   | `data` and `headers` |  `url="https://httpbin.org/post", data="<Tests Id='01'><Test TestId='01'><Name>Command name</Name></Test></Tests>", headers="{'Content-Type':'application/xml'}"` |
+
+#### Show (parts) of the server response text in the remote ui
+
+The integration exposes a sensor entity that shows the text of the response body from the last executed http request command. Responses are also used for the media_title attribute of the associated request method's media player entity. This allows you to add a media player widget to an activity and see the response within an activity because you can't add sensors to activities as there's no widget for them.
+
+The output can be parsed to only show a specific part of the response message using regular expressions. These can be configured in the advanced setup. Sites like [regex101.com](https://regex101.com) or the AI model of your choice can help you with finding matching expressions. By default the complete response message will be used if no regular expression has been set or no matches have been found.
 
 #### Legacy syntax
 

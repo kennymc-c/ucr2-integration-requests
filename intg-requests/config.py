@@ -62,7 +62,7 @@ class Setup:
     @staticmethod
     def get(key):
         """Get the value from the specified key in __conf"""
-        if Setup.__conf[key] == "" and key is not "rq_response_regex": #rq_response_regex can be empty
+        if Setup.__conf[key] == "" and key != "rq_response_regex": #rq_response_regex can be empty
             raise ValueError("Got empty value for " + key + " from config storage")
         return Setup.__conf[key]
 
@@ -179,7 +179,7 @@ The Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
                 else:
                     _LOG.info("Using the default http requests syntax as it has not been changed during setup. \
 The Default value " + str(Setup.get("rq_legacy")) + " will be used")
-                    
+
                 if "rq_response_regex" in configfile:
                     Setup.__conf["rq_response_regex"] = configfile["rq_response_regex"]
                     _LOG.info("Loaded rq_response_regex: " + str(configfile["rq_response_regex"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])

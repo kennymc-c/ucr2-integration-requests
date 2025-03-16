@@ -49,7 +49,10 @@ async def add_mp(entity_id: str, entity_name: str):
     definition = ucapi.MediaPlayer(
         entity_id,
         entity_name,
-        [ucapi.media_player.Features.SELECT_SOURCE],
+        [
+            ucapi.media_player.Features.SELECT_SOURCE, \
+            ucapi.media_player.Features.MEDIA_TITLE
+        ],
         attributes={ucapi.media_player.Attributes.STATE: ucapi.media_player.States.ON},
         cmd_handler=mp_cmd_handler
     )
@@ -171,6 +174,7 @@ def setup_logger():
     logging.getLogger("ucapi.entity").setLevel(level)
     logging.getLogger("driver").setLevel(level)
     logging.getLogger("media_player").setLevel(level)
+    logging.getLogger("sensor").setLevel(level)
     logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
     logging.getLogger("getmac").setLevel(level)

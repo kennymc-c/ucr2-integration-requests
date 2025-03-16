@@ -111,7 +111,7 @@ rq_user_agent: " + str(rq_user_agent) + ",  rq_legacy: " + str(rq_legacy) + ", r
                   "id": "tcp_text_timeout",
                   "label": {
                             "en": "Timeout for Text over TCP (max. 30 seconds):",
-                            "de": "Timeout für Text over TCP (max. 30 Sekunden):"
+                            "de": "Timeout für Text über TCP (max. 30 Sekunden):"
                             },
                    "field": {"number": {
                                     "value": tcp_text_timeout,

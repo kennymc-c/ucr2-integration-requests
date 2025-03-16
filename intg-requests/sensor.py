@@ -3,17 +3,13 @@
 """Module that includes functions to add a http request response sensor entity"""
 
 import logging
-
 import ucapi
-from re import search
-
-import config
 import driver
 
 _LOG = logging.getLogger(__name__)
 
 #TODO Add possibility to add additional sensor entities in advanced setup. Each sensor then can be linked to a specific http request command by using a special command parameter
-
+#TODO Use media player title, artist, album or media type to also show the response because sensors cant be added to activities and have no widgets
 
 
 async def add_rq_sensor(ent_id: str, name: str):
@@ -37,24 +33,7 @@ async def add_rq_sensor(ent_id: str, name: str):
 def update_rq_sensor(entity_id: str, response: str):
     """Parse http request response with configured regular expression and update sensor entity value"""
 
-    regex = config.Setup.get("rq_response_regex")
-
-    if regex == "":
-        parsed_response = response
-        _LOG.debug("No regular expression set for the http request response sensor. The complete response will be sent to the http request response sensor")
-    else:
-        match = search(regex, response)
-        if match:
-            parsed_response = match.group(1)
-            _LOG.debug("Parsed response: " + parsed_response)
-        else:
-            parsed_response = response
-            _LOG.warning("No matches found in the http request response for the regular expression " + regex + ". \
-The complete response will be sent to the http request response sensor")
-
-    value = parsed_response
-
-    attributes_to_send = {ucapi.sensor.Attributes.STATE: ucapi.sensor.States.ON, ucapi.sensor.Attributes.VALUE: value}
+    attributes_to_send = {ucapi.sensor.Attributes.STATE: ucapi.sensor.States.ON, ucapi.sensor.Attributes.VALUE: response}
 
     try:
         api_update_attributes = driver.api.configured_entities.update_attributes(entity_id, attributes_to_send)
@@ -65,4 +44,4 @@ The complete response will be sent to the http request response sensor")
     if not api_update_attributes:
         raise Exception("Sensor entity " + entity_id + " not found. Please make sure it's added as a configured entity on the remote")
 
-    _LOG.info("Updated http request response sensor value to " + value)
+    _LOG.info("Updated http request response sensor value to " + response)

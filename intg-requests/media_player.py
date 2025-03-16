@@ -10,7 +10,7 @@ from typing import Any
 import ast
 import shlex
 
-from re import sub, match, IGNORECASE
+from re import sub, match, search, IGNORECASE
 from ipaddress import ip_address, IPv4Address, IPv6Address, AddressValueError
 import urllib3 #Needed to optionally deactivate requests ssl verify warning message
 
@@ -23,6 +23,7 @@ from getmac import get_mac_address
 
 import config
 import sensor
+import driver
 
 _LOG = logging.getLogger(__name__)
 
@@ -126,6 +127,57 @@ def tcp_text_process_control_data(data):
     data = data.encode("utf-8").decode("unicode_escape")
 
     return data
+
+
+def parse_rq_response(response: str):
+    """Parse http request response with configured regular expression"""
+
+    regex = config.Setup.get("rq_response_regex")
+
+    if regex == "":
+        parsed_response = response
+        _LOG.debug("No regular expression set for the http request response sensor. The complete response will be used")
+    else:
+        match = search(regex, response)
+        if match:
+            parsed_response = match.group(1)
+            _LOG.debug("Parsed response from configured regex: " + parsed_response)
+        else:
+            parsed_response = response
+            _LOG.warning("No matches found in the http request response for the regular expression " + regex + ". \
+The complete response will be used")
+
+    return parsed_response
+
+
+
+def update_response(method:str, response: str):
+    """Update the response in the sensor entity and media player widget"""
+
+    entity_id = "http-" + method
+
+    parsed_response = parse_rq_response(response)
+
+    sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), parsed_response)
+
+    update_rq_media_widget(entity_id, parsed_response)
+
+
+
+def update_rq_media_widget(entity_id:str, response: str):
+    """Update the response in the media player widget"""
+
+    attributes_to_send = {ucapi.media_player.Attributes.MEDIA_TITLE: response}
+
+    try:
+        api_update_attributes = driver.api.configured_entities.update_attributes(entity_id, attributes_to_send)
+    except Exception as e:
+        raise Exception("Error while updating attributes for entity id " + entity_id) from e
+
+    if not api_update_attributes:
+        raise Exception("Entity " + entity_id + " not found. Please make sure it's added as a configured entity on the remote")
+    else:
+        _LOG.info("Updated entity attribute(s) " + str(attributes_to_send) + " for " + entity_id)
 
 
 
@@ -262,7 +314,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
         _LOG.info("Sent http-" + method + " request to: " + url)
         if response.text != "":
             _LOG.info("Server response: " + response.text)
-            sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), response.text)
+            update_response(method, response.text)
         else:
             _LOG.debug("Received 200 - OK status code")
         return ucapi.StatusCodes.OK
@@ -276,7 +328,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
             if response.status_code == 404:
                 if response.text != "":
                     _LOG.info("Server response: " + response.text)
-                    sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), response.text)
+                    update_response(method, response.text)
                 return ucapi.StatusCodes.NOT_FOUND
             return ucapi.StatusCodes.BAD_REQUEST
         return ucapi.StatusCodes.SERVER_ERROR
@@ -285,7 +337,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
         _LOG.info("Received informational or redirection http status code: " + str(response.status_code))
         if response.text != "":
             _LOG.info("Server response: " + response)
-            sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), response.text)
+            update_response(method, response.text)
         return ucapi.StatusCodes.OK
 
 
