@@ -25,6 +25,12 @@ class Setup:
         "rq_fire_and_forget": False,
         "rq_legacy": False,
         "rq_response_regex": "",
+        "rq_response_nomatch_option": "full",
+        "rq_response_nomatch_dropdown_items": [
+                                                {"id": "full", "label": {"en": "Full", "de": "Komplett"}},
+                                                {"id": "empty", "label": {"en": "Empty", "de": "Leer"}},
+                                                {"id": "error", "label": {"en": "Error", "de": "Fehler"}}
+                                                ],  
         "id-rq-sensor": "http-response",
         "name-rq-sensor": {
                         "en": "HTTP Request Response",
@@ -51,9 +57,10 @@ class Setup:
                         },
     }
     __setters = ["standby", "setup_complete", "setup_reconfigure", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", \
-                 "rq_fire_and_forget", "rq_legacy", "rq_response_regex", "bundle_mode", "cfg_path"]
+                 "rq_fire_and_forget", "rq_legacy", "rq_response_regex", "rq_response_nomatch_option", "bundle_mode", "cfg_path"]
     #Skip runtime only related values in config file
-    __storers = ["setup_complete", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", "rq_legacy", "rq_response_regex"]
+    __storers = ["setup_complete", "tcp_text_timeout", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", "rq_legacy", \
+    "rq_response_regex", "rq_response_nomatch_option"]
 
     all_cmds = ["get", "post", "patch", "put", "delete", "head", "wol", "tcp-text"]
     rq_ids = [__conf["id-rq-sensor"], __conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"], __conf["id-delete"], __conf["id-head"]]

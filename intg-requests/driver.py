@@ -147,10 +147,12 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
     """
     _LOG.info("Received subscribe entities event for entity ids: " + str(entity_ids))
 
+    #TODO #WAIT Add api.configured_entities.add(definition) when the unsubscribe event is handled by the integration API
+
     config.Setup.set("standby", False)
 
 
-
+# Doesn't work as the unsubscribe event is not handled by the integration API
 @api.listens_to(ucapi.Events.UNSUBSCRIBE_ENTITIES)
 async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
     """
@@ -161,6 +163,8 @@ async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
     Just show a debug log message as there is not device to disconnect.
     """
     _LOG.info("Unsubscribe entities event for entity ids: %s", entity_ids)
+
+    #TODO #WAIT Add api.configured_entities.remove(entity_ids) when the unsubscribe event is handled by the integration API
 
 
 

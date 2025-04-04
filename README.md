@@ -123,9 +123,9 @@ If you activate the option to ignore HTTP requests errors in the integration set
 
 #### Show (parts) of the server response text in the remote ui
 
-The integration exposes a sensor entity that shows the text of the response body from the last executed http request command. Responses are also used for the media_title attribute of the associated request method's media player entity. This allows you to add a media player widget to an activity and see the response within an activity because you can't add sensors to activities as there's no widget for them.
+The integration exposes a sensor entity that shows the text of the response body from the last executed http request command. Responses are also used for the media_title attribute of the associated request method's media player entity. This allows you to add a media player widget to an activity and see the response within an activity because you can't add sensors to activities as there's no widget for them. If the sensor entity has not been added as a configured entity in the web configurator a info message will be shown in the integration log.
 
-The output can be parsed to only show a specific part of the response message using regular expressions. These can be configured in the advanced setup. Sites like [regex101.com](https://regex101.com) or the AI model of your choice can help you with finding matching expressions. By default the complete response message will be used if no regular expression has been set or no matches have been found.
+The output can be parsed to only show a specific part of the response message using regular expressions. These can be configured in the advanced setup. Sites like [regex101.com](https://regex101.com) or the AI model of your choice can help you with finding matching expressions. By default the complete response message will be used if no regular expression has been set or no matches have been found. The advanced setup has an option to use an empty response or show an error message instead if no match has been found.
 
 #### Legacy syntax
 

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2025-04-04
+
+### Fixed
+
+- Changed handling of an exception that could occur if the http response sensor was never added as a configured entity. Instead of an exception now only an info log message is shown.
+
+### Added
+
+- Added an option to change what should be shown in the http response sensor and media player title if no match has been found for the configured regular expression
+
 ## [0.7.1] - 2025-03-16
 
 ### Changed

@@ -8,8 +8,8 @@ import driver
 
 _LOG = logging.getLogger(__name__)
 
-#TODO Add possibility to add additional sensor entities in advanced setup. Each sensor then can be linked to a specific http request command by using a special command parameter
-#TODO Use media player title, artist, album or media type to also show the response because sensors cant be added to activities and have no widgets
+#TODO Add possibility to add additional sensor entities in advanced setup.
+# Each sensor then can be linked to a specific http request command by using a special command parameter
 
 
 async def add_rq_sensor(ent_id: str, name: str):
@@ -42,6 +42,6 @@ def update_rq_sensor(entity_id: str, response: str):
         raise Exception("Error while updating sensor value for entity id " + entity_id) from e
 
     if not api_update_attributes:
-        raise Exception("Sensor entity " + entity_id + " not found. Please make sure it's added as a configured entity on the remote")
+        raise ModuleNotFoundError("Sensor entity " + entity_id + " not found or added as configured entity. Skipping update.")
 
     _LOG.info("Updated http request response sensor value to " + response)

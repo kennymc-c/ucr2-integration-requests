@@ -30,7 +30,7 @@ _LOG = logging.getLogger(__name__)
 
 
 def get_mac(param: str):
-    """Accepts mac, ip addresses or hostnames. Get the mac address or checks if the mac address is valid.\
+    """Accepts mac, ip addresses or host names. Get the mac address or checks if the mac address is valid.\
     If the mac address can not be discovered a value error is raised"""
 
     try:
@@ -63,7 +63,7 @@ Please use the mac address instead")
                     _LOG.info("Got mac address from entered ipv4 ip: " + param)
                 if param == "" or param is None:
                     raise OSError("Could not convert ipv4 with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
-    Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
+Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
             except AddressValueError:
                 try:
                     IPv6Address(param)
@@ -75,7 +75,7 @@ Please use the mac address instead")
                         _LOG.info("Got mac address from entered ipv6 ip: " + param)
                     if param == "" or param is None:
                         raise OSError("Could not convert ipv6 with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
-    Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
+Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
                 except AddressValueError as v:
                     raise ValueError(v) from v
 
@@ -133,6 +133,7 @@ def parse_rq_response(response: str):
     """Parse http request response with configured regular expression"""
 
     regex = config.Setup.get("rq_response_regex")
+    nomatch_option = config.Setup.get("rq_response_nomatch_option")
 
     if regex == "":
         parsed_response = response
@@ -143,9 +144,18 @@ def parse_rq_response(response: str):
             parsed_response = match.group(1)
             _LOG.debug("Parsed response from configured regex: " + parsed_response)
         else:
-            parsed_response = response
-            _LOG.warning("No matches found in the http request response for the regular expression " + regex + ". \
-The complete response will be used")
+            _LOG.warning("No matches found in the http request response for the regular expression " + regex)
+
+            if nomatch_option == "full":
+                _LOG.debug("The full response will be used instead")
+                parsed_response = response
+            elif nomatch_option == "error":
+                _LOG.debug("An error message will be used instead")
+                #TODO #WAIT Add a translation for the error message when get_localization_cfg() is implemented in the Python API
+                parsed_response = "No match found"
+            elif nomatch_option == "empty":
+                _LOG.debug("An empty response will be used instead")
+                parsed_response = ""
 
     return parsed_response
 
@@ -158,7 +168,12 @@ def update_response(method:str, response: str):
 
     parsed_response = parse_rq_response(response)
 
-    sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), parsed_response)
+    try:
+        sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), parsed_response)
+    except ModuleNotFoundError as f:
+        _LOG.info(f)
+    except Exception as e:
+        _LOG.error(e)
 
     update_rq_media_widget(entity_id, parsed_response)
 
@@ -445,7 +460,8 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
 
             try:
                 #TODO Run via asyncio.gather() to prevent potential blocking the event loop
-                send_magic_packet(*macs, **params) #Unpack macs list with * and params dicts list with **
+                await asyncio.gather(asyncio.to_thread(send_magic_packet, *macs, *params), asyncio.sleep(0)) #Unpack macs list with * and params dicts list with **
+                #send_magic_packet(*macs, **params) #Unpack macs list with * and params dicts list with **
             except ValueError as v:
                 _LOG.error(v)
                 return ucapi.StatusCodes.BAD_REQUEST

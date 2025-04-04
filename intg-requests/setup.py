@@ -89,13 +89,18 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
             #TODO Remove legacy syntax in a future version
             rq_legacy = config.Setup.get("rq_legacy")
             rq_response_regex = config.Setup.get("rq_response_regex")
+            rq_response_nomatch_option = config.Setup.get("rq_response_nomatch_option")
+            rq_response_nomatch_dropdown_items = config.Setup.get("rq_response_nomatch_dropdown_items")
         except ValueError as v:
             _LOG.error(v)
 
+        #TODO Remove legacy syntax in a future version
         _LOG.debug("Currently stored - tcp_text_timeout: " + str(tcp_text_timeout) + " , rq_timeout: " + str(rq_timeout) + " , \
 rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget) + ", \
-rq_user_agent: " + str(rq_user_agent) + ",  rq_legacy: " + str(rq_legacy) + ", rq_response_regex: " + str(rq_response_regex))
+rq_user_agent: " + str(rq_user_agent) + ",  rq_legacy: " + str(rq_legacy) + ", rq_response_regex: " + str(rq_response_regex) + ", \
+rq_response_options: " + str(rq_response_nomatch_option))
 
+        #TODO Remove legacy syntax in a future version
         return ucapi.RequestUserInput(
             {
                 "en": "Configuration",
@@ -175,6 +180,18 @@ rq_user_agent: " + str(rq_user_agent) + ",  rq_legacy: " + str(rq_legacy) + ", r
                             },
                 },
                 {
+                    "id": "rq_response_nomatch_option",
+                    "label": {
+                        "en": "Response if no match for the regular expression has been found:",
+                        "de": "Antwort, falls keine Übereinstimmung mit dem regulären Ausdruck gefunden wurde:"
+                        },
+                    "field": {"dropdown": {
+                                        "value": rq_response_nomatch_dropdown_items[0]["id"],
+                                        "items": rq_response_nomatch_dropdown_items
+                                        }
+                            },
+                },
+                {
                     "id": "rq_ssl_verify",
                     "label": {
                         "en": "Verify HTTP SSL certificates:",
@@ -239,6 +256,7 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
     #TODO Remove legacy syntax in a future version
     rq_legacy = msg.input_values["rq_legacy"]
     rq_response_regex = msg.input_values["rq_response_regex"]
+    rq_response_nomatch_option = msg.input_values["rq_response_nomatch_option"]
 
     rq_timeout = int(rq_timeout)
     tcp_text_timeout = int(tcp_text_timeout)
@@ -274,6 +292,14 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
         config.Setup.set("setup_complete", False)
         return ucapi.SetupError()
     _LOG.info("Http request response regular expression: \"" +  str(rq_response_regex) + "\"")
+
+    try:
+        config.Setup.set("rq_response_nomatch_option", rq_response_nomatch_option)
+    except Exception as e:
+        _LOG.error(e)
+        config.Setup.set("setup_complete", False)
+        return ucapi.SetupError()
+    _LOG.info("Http request response option: \"" +  str(rq_response_nomatch_option) + "\"")
 
     if rq_ssl_verify == "true": #Boolean in quotes as all values are returned as strings
         try:

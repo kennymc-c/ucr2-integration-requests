@@ -23,6 +23,7 @@ disable=
     broad-exception-caught,
     broad-exception-raised,
     logging-not-lazy,
+    logging-fstring-interpolation,
     fixme # temporary
 
 [STRING]
