@@ -357,15 +357,17 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
 
 
 
-async def tcp_text_cmd(cmd_param:str) -> str:
-    """Send a text over tcp command to the passed address and return the status code"""
-    address, data =cmd_param.split(",", 1) #Split only at the 1st comma to ignore all others that may be included in the text to be send
+async def tcp_text_cmd(cmd_param: str) -> str:
+    """Send a text over TCP command to the passed address and return the status code."""
+    address, data = cmd_param.split(",", 1)  # Split only at the 1st comma
     host, port = address.split(":")
     timeout = config.Setup.get("tcp_text_timeout")
 
     port = int(port)
-    data = data.strip().strip('"\'') #Remove spaces and (double) quotes at the beginning and the end
+    data = data.strip().strip('"\'')  # Remove spaces and (double) quotes
     data = tcp_text_process_control_data(data)
+
+    writer = None
 
     try:
         reader, writer = await asyncio.open_connection(host, port)
@@ -384,6 +386,16 @@ async def tcp_text_cmd(cmd_param:str) -> str:
         _LOG.error(e)
         _LOG.info("Please check if host and port are correct and can be reached from the network in which the integration is running")
         return ucapi.StatusCodes.BAD_REQUEST
+    finally:
+        if writer:
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception as e:
+                _LOG.error("An error occurred while closing the connection:")
+                _LOG.error(e)
+        else:
+            _LOG.error("The server could not be reached or the connection was rejected")
 
     _LOG.info("Sent raw text " + repr(format(data)) + " over TCP to " + address)
     if received != "":

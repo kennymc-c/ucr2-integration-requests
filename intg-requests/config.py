@@ -149,35 +149,35 @@ class Setup:
                     _LOG.info("Loaded custom text over tcp timeout of " + str(configfile["tcp_text_timeout"]) + " seconds \
 into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
-                    _LOG.info("Skip loading custom text over tcp timeout as it has not been changed during setup. \
+                    _LOG.debug("Skip loading custom text over tcp timeout as it has not been changed during setup. \
 The Default value of " + str(Setup.get("tcp_text_timeout")) + " seconds will be used")
 
                 if "rq_user_agent" in configfile:
                     Setup.__conf["rq_user_agent"] = configfile["rq_user_agent"]
                     _LOG.info("Loaded custom http requests user agent " + str(configfile["rq_user_agent"]) + " into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
-                    _LOG.info("Skip loading custom http requests user agent as it has not been changed during setup. \
+                    _LOG.debug("Skip loading custom http requests user agent as it has not been changed during setup. \
 The Default user agent " + str(Setup.get("rq_user_agent")) + " will be used")
 
                 if "rq_timeout" in configfile:
                     Setup.__conf["rq_timeout"] = configfile["rq_timeout"]
                     _LOG.info("Loaded custom http requests timeout of " + str(configfile["rq_timeout"]) + " seconds into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
-                    _LOG.info("Skip loading custom http requests timeout as it has not been changed during setup. \
+                    _LOG.debug("Skip loading custom http requests timeout as it has not been changed during setup. \
 The Default value of " + str(Setup.get("rq_timeout")) + " seconds will be used")
 
                 if "rq_ssl_verify" in configfile:
                     Setup.__conf["rq_ssl_verify"] = configfile["rq_ssl_verify"]
                     _LOG.info("Loaded custom http ssl verification: " + str(configfile["rq_ssl_verify"]) + " into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
-                    _LOG.info("Skip loading http ssl verification flag as it has not been changed during setup. \
+                    _LOG.debug("Skip loading http ssl verification flag as it has not been changed during setup. \
 The Default value " + str(Setup.get("rq_ssl_verify")) + " will be used")
 
                 if "rq_fire_and_forget" in configfile:
                     Setup.__conf["rq_fire_and_forget"] = configfile["rq_fire_and_forget"]
                     _LOG.info("Loaded custom fire_and_forget: " + str(configfile["rq_fire_and_forget"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
-                    _LOG.info("Skip loading fire_and_forget as it has not been changed during setup. \
+                    _LOG.debug("Skip loading fire_and_forget as it has not been changed during setup. \
 The Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
 
                 if "rq_legacy" in configfile:
@@ -191,7 +191,7 @@ The Default value " + str(Setup.get("rq_legacy")) + " will be used")
                     Setup.__conf["rq_response_regex"] = configfile["rq_response_regex"]
                     _LOG.info("Loaded rq_response_regex: " + str(configfile["rq_response_regex"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
-                    _LOG.info("No regular expression has not been set during setup. The complete http request response will be sent to the http request response sensor")
+                    _LOG.debug("No regular expression has not been set during setup. The complete http request response will be sent to the http request response sensor")
 
         else:
             _LOG.info(Setup.__conf["cfg_path"] + " does not exist (yet). Please start the setup process")

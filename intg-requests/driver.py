@@ -152,7 +152,8 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
     config.Setup.set("standby", False)
 
 
-# Doesn't work as the unsubscribe event is not handled by the integration API
+#BUG No event when removing an entity as configured entity. Could be a UC Python library or core/web configurator bug.
+# https://github.com/unfoldedcircle/integration-python-library/issues/25
 @api.listens_to(ucapi.Events.UNSUBSCRIBE_ENTITIES)
 async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
     """
@@ -211,5 +212,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    loop.run_until_complete(main())
-    loop.run_forever()
+    try:
+        loop.run_until_complete(main())
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
