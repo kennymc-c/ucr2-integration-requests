@@ -82,6 +82,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
 
         try:
             tcp_text_timeout = config.Setup.get("tcp_text_timeout")
+            tcp_text_response_wait = config.Setup.get("tcp_text_response_wait")
             rq_timeout = config.Setup.get("rq_timeout")
             rq_ssl_verify = config.Setup.get("rq_ssl_verify")
             rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
@@ -95,7 +96,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
             _LOG.error(v)
 
         #TODO Remove legacy syntax in a future version
-        _LOG.debug("Currently stored - tcp_text_timeout: " + str(tcp_text_timeout) + " , rq_timeout: " + str(rq_timeout) + " , \
+        _LOG.debug("Currently stored - tcp_text_timeout: " + str(tcp_text_timeout) + " , tcp_text_response_wait: " + str(tcp_text_response_wait) + " , rq_timeout: " + str(rq_timeout) + " , \
 rq_ssl_verify: " + str(rq_ssl_verify) + " , rq_fire_and_forget: " + str(rq_fire_and_forget) + ", \
 rq_user_agent: " + str(rq_user_agent) + ",  rq_legacy: " + str(rq_legacy) + ", rq_response_regex: " + str(rq_response_regex) + ", \
 rq_response_options: " + str(rq_response_nomatch_option))
@@ -129,6 +130,17 @@ rq_response_options: " + str(rq_response_nomatch_option))
                                             "en": "seconds",
                                             "de": "Sekunden"
                                         }
+                                        }
+                            },
+                },
+            {
+                    "id": "tcp_text_response_wait",
+                    "label": {
+                        "en": "Wait for a text over tcp response message:",
+                        "de": "Auf eine Text über TCP Antwort warten:"
+                        },
+                    "field": {"checkbox": {
+                                        "value": tcp_text_response_wait
                                         }
                             },
                 },
@@ -249,6 +261,7 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
     """
 
     tcp_text_timeout = msg.input_values["tcp_text_timeout"]
+    tcp_text_response_wait = msg.input_values["tcp_text_response_wait"]
     rq_timeout = msg.input_values["rq_timeout"]
     rq_ssl_verify = msg.input_values["rq_ssl_verify"]
     rq_fire_and_forget = msg.input_values["rq_fire_and_forget"]
@@ -267,7 +280,24 @@ async def  handle_user_data_response(msg: ucapi.UserDataResponse) -> ucapi.Setup
         _LOG.error(e)
         config.Setup.set("setup_complete", False)
         return ucapi.SetupError()
-    _LOG.info("Tcp text timeout: " +  str(tcp_text_timeout) + " seconds")
+    _LOG.info("Text over tcp timeout: " +  str(tcp_text_timeout) + " seconds")
+
+    if tcp_text_response_wait == "true": #Boolean in quotes as all values are returned as strings
+        try:
+            config.Setup.set("tcp_text_response_wait", True)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
+        _LOG.info("Wait for text over tcp response: " +  str(tcp_text_response_wait))
+    else:
+        try:
+            config.Setup.set("tcp_text_response_wait", False)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
+        _LOG.info("Do not wait for text over tcp response: " +  str(tcp_text_response_wait))
 
     try:
         config.Setup.set("rq_timeout", rq_timeout)

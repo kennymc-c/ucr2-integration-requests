@@ -362,6 +362,7 @@ async def tcp_text_cmd(cmd_param: str) -> str:
     address, data = cmd_param.split(",", 1)  # Split only at the 1st comma
     host, port = address.split(":")
     timeout = config.Setup.get("tcp_text_timeout")
+    response_wait = config.Setup.get("tcp_text_response_wait")
 
     port = int(port)
     data = data.strip().strip('"\'')  # Remove spaces and (double) quotes
@@ -375,12 +376,13 @@ async def tcp_text_cmd(cmd_param: str) -> str:
         await writer.drain()
 
         received = ""
-        received = await asyncio.wait_for(reader.read(1024), timeout)
-        received = received.decode("utf-8")
-    except asyncio.TimeoutError:
-        _LOG.error("A timeout error occurred while connecting to the server")
-        _LOG.info("Please check if the client software is running on the host")
-        return ucapi.StatusCodes.TIMEOUT
+        if response_wait:
+            try:
+                received = await asyncio.wait_for(reader.read(1024), timeout)
+                received = received.decode("utf-8")
+            except asyncio.TimeoutError:
+                _LOG.warning("Timeout while waiting for a response message from the server")
+                return ucapi.StatusCodes.TIMEOUT
     except Exception as e:
         _LOG.error("An error occurred while connecting to the server:")
         _LOG.error(e)
