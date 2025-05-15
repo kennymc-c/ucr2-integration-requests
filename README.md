@@ -24,6 +24,7 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
     - [Show (parts) of the server response text in the remote ui](#show-parts-of-the-server-response-text-in-the-remote-ui)
     - [Legacy syntax](#legacy-syntax)
   - [3 - Text over TCP](#3---text-over-tcp)
+    - [Wait for a response message](#wait-for-a-response-message)
     - [Control characters](#control-characters)
       - [Escaping](#escaping)
 - [Installation](#installation)
@@ -154,6 +155,10 @@ This method can be used with some home automation systems, tools like [win-remot
 - Generic Example: 192.168.1.1:1234, "Hello World"
 - PJLink Power On Example: 192.168.1.1:4352,"%1POWR 1\r"
   - Other PJLink commands can be found in the [PJLink command descriptions](https://pjlink.jbmia.or.jp/english/data_cl2/PJLink_5-1.pdf) (from page 17)
+
+#### Wait for a response message
+
+By default the integration waits for a response message from the server/device and raises a timeout error if no response has been received in the configured time frame. You can change this behavior in the advanced settings if your device is not sending any response message.
 
 #### Control characters
 
