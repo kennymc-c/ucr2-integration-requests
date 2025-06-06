@@ -6,7 +6,7 @@ This software may contain bugs that could affect system stability. Please use it
 
 ## <!-- omit in toc -->
 
-Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently [Remote Two](https://www.unfoldedcircle.com/remote-two) and the upcoming [Remote 3](https://www.unfoldedcircle.com)) to send http requests, wake-on-lan magic packets and text over TCP.
+Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently Remote Two and [Remote 3](https://www.unfoldedcircle.com)) to send http requests, wake-on-lan magic packets and text over TCP.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests), [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) and [getmac](https://github.com/GhostofGoes/getmac).
 
@@ -30,9 +30,10 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
 - [Installation](#installation)
   - [Run on the remote as a custom integration driver](#run-on-the-remote-as-a-custom-integration-driver)
     - [Missing firmware features](#missing-firmware-features)
-    - [Download integration driver](#download-integration-driver)
-    - [Upload \& installation](#upload--installation)
-      - [Upload via Core API or 3rd party tools](#upload-via-core-api-or-3rd-party-tools)
+    - [1 - Download integration driver](#1---download-integration-driver)
+    - [2 - Upload \& installation](#2---upload--installation)
+      - [Upload in Web Configurator](#upload-in-web-configurator)
+      - [Alternative - Upload via Core API or 3rd party tools](#alternative---upload-via-core-api-or-3rd-party-tools)
   - [Run on a separate device as an external integration driver](#run-on-a-separate-device-as-an-external-integration-driver)
     - [Bare metal/VM](#bare-metalvm)
       - [Requirements](#requirements)
@@ -173,22 +174,24 @@ C++ and hex style control characters are supported to e.g. add a new line (\\n o
 
 ### Run on the remote as a custom integration driver
 
-*⚠️ This feature is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see below) and that changes in future beta updates may temporarily or permanently break the functionality of this integration as a custom integration. Please wait until custom integrations are available in stable firmware releases if you don't want to take these risks.*
+_⚠️ This feature is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see below)._
 
 #### Missing firmware features
 
 - The configuration file of custom integrations are not included in backups.
 - You currently can't update custom integrations. You need to delete the integration from the integrations menu first and then re-upload the new version. Do not edit any activity or macros that includes entities from this integration after you removed the integration and wait until the new version has been uploaded and installed. You also need to re-add entities to the main pages after the update as they are automatically removed. An update function will probably be added once the custom integrations feature will be available in stable firmware releases.
 
-#### Download integration driver
+#### 1 - Download integration driver
 
-Download the uc-intg-requests-x.x.x-aarch64.tar.gz archive in the assets section from the [latest release](https://github.com/kennymc-c/ucr2-integration-requests/releases/latest)
+Download the uc-intg-requests-x.x.x-aarch64.tar.gz archive in the assets section from the [latest release](https://github.com/kennymc-c/ucr2-integration-requests/releases/latest).
 
-#### Upload & installation
+#### 2 - Upload & installation
 
-Since firmware version 2.2.0 you can upload custom integrations in the web configurator. Go to integrations, click on install custom and choose the downloaded tar.gz file
+##### Upload in Web Configurator
 
-##### Upload via Core API or 3rd party tools
+Since firmware version 2.2.0 you can upload custom integrations in the web configurator. Go to _Integrations_ in the top menu, on the top right click on *Add new/Install custom_ and choose the downloaded tar.gz file.
+
+##### Alternative - Upload via Core API or 3rd party tools
 
 ```shell
 curl --location 'http://$IP/api/intg/install' \
