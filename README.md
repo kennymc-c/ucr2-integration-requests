@@ -79,6 +79,10 @@ For http requests it's also possible to temporally overwrite one or more setting
 ## Usage
 
 The integration exposes a media player entity for each supported command. These entities only support the source feature. Just enter the needed data for the chosen entity (see below) in the source field after adding the input source command to your activity/macro sequence, user interface or button mapping.
+ 
+This is an example for the text over TCP entity but it should explain the workflow of this integration:
+
+https://github.com/user-attachments/assets/fb795db5-8f1f-4601-8e21-0f69d1a57e4d
 
 ### 1 - Wake-on-lan
 
