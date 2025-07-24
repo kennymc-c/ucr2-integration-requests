@@ -474,7 +474,7 @@ async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] 
 
             try:
                 #TODO Run via asyncio.gather() to prevent potential blocking the event loop
-                await asyncio.gather(asyncio.to_thread(send_magic_packet, *macs, *params), asyncio.sleep(0)) #Unpack macs list with * and params dicts list with **
+                await asyncio.gather(asyncio.to_thread(send_magic_packet, *macs, **params), asyncio.sleep(0)) #Unpack macs list with * and params dicts list with **
                 #send_magic_packet(*macs, **params) #Unpack macs list with * and params dicts list with **
             except ValueError as v:
                 _LOG.error(v)
