@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-08-20
+
+### Breaking
+
+- Removed the legacy syntax. Please use the current syntax that was introduced with 0.6.0 or the new custom entities (see below)
+
+### Added
+
+- Added a custom entities configuration. This allows you to add remote entities with pre-defined commands and power state handling
+  - More details can be found here: [Custom Entities](/README.md#4---custom-entities)
+
+### Changed
+
+- Improved handling of updating attributes for entities that have not been added as configured entities
+- Updated python requests module dependency to 2.32.5
+
 ## [0.7.4] - 2025-07-24
 
 ### Fixed

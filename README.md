@@ -8,7 +8,7 @@ This software may contain bugs that could affect system stability. Please use it
 
 Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently Remote Two and [Remote 3](https://www.unfoldedcircle.com)) to send http requests, wake-on-lan magic packets and text over TCP.
 
-Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests), [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) and [getmac](https://github.com/GhostofGoes/getmac).
+Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests), [pywakeonlan](https://github.com/remcohaszing/pywakeonlan), [getmac](https://github.com/GhostofGoes/getmac) and [pyyaml](https://github.com/yaml/pyyaml).
 
 - [Supported entity features](#supported-entity-features)
 - [Planned features](#planned-features)
@@ -22,14 +22,19 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
     - [SSL verification \& Fire and forget mode](#ssl-verification--fire-and-forget-mode)
     - [Use case examples](#use-case-examples)
     - [Show (parts) of the server response text in the remote ui](#show-parts-of-the-server-response-text-in-the-remote-ui)
-    - [Legacy syntax](#legacy-syntax)
   - [3 - Text over TCP](#3---text-over-tcp)
     - [Wait for a response message](#wait-for-a-response-message)
     - [Control characters](#control-characters)
       - [Escaping](#escaping)
+  - [4 - Custom Entities](#4---custom-entities)
+    - [⚠️ Important](#️-important)
+    - [Example yaml configuration](#example-yaml-configuration)
+    - [Using variables](#using-variables)
+      - [Example](#example)
 - [Installation](#installation)
   - [Run on the remote as a custom integration driver](#run-on-the-remote-as-a-custom-integration-driver)
-    - [Missing firmware features](#missing-firmware-features)
+    - [Limitations / Disclaimer](#limitations--disclaimer)
+      - [Missing firmware features](#missing-firmware-features)
     - [1 - Download integration driver](#1---download-integration-driver)
     - [2 - Upload \& installation](#2---upload--installation)
       - [Upload in Web Configurator](#upload-in-web-configurator)
@@ -84,6 +89,8 @@ This is an example for the text over TCP entity but it should explain the workfl
 
 https://github.com/user-attachments/assets/fb795db5-8f1f-4601-8e21-0f69d1a57e4d
 
+Additionally you can configure custom entities that can include simple commands as well as separate on/off/toggle commands that will change the state of the entity. More details can be found below.
+
 ### 1 - Wake-on-lan
 
 Enter the desired hostname, mac or ip address (ipv4/v6). Multiple addresses can be separated by a comma.
@@ -133,26 +140,6 @@ The integration exposes a sensor entity that shows the text of the response body
 
 The output can be parsed to only show a specific part of the response message using regular expressions. These can be configured in the advanced setup. Sites like [regex101.com](https://regex101.com) or the AI model of your choice can help you with finding matching expressions. By default the complete response message will be used if no regular expression has been set or no matches have been found. The advanced setup has an option to use an empty response or show an error message instead if no match has been found.
 
-#### Legacy syntax
-
-⚠️ Used before v0.6.0 and support will be removed in a future version
-
-<details>
-<summary>Legacy syntax</summary>
-
-Optional payload data can be added to the request body with a specific separator character.
-
-⚠️ Only one payload type per requests is supported
-
-| Content type                      | Separator     | Example                                                      | Notes |
-|-----------------------------------|---------------|--------------------------------------------------------------|-------|
-| `application/x-www-form-urlencoded` | `§` (paragraph) |  `https://httpbin.org/post§key1=value1,key2=value2`            | Multiple values for a single key are currently not supported. |
-| `application/json`                 | `\|` (pipe)     |  `https://httpbin.org/post\|{"key1":"value1","key2":"value2"}` | |
-| `application/xml`                   | `^` (caret)     |  `https://httpbin.org/post^<Tests Id="01"><Test TestId="01"><Name>Command name</Name></Test></Tests>` | |
-
-If your actual url contains one or more of the above separators or other special characters that are not url reserved control characters you need to url-encode them first (e.g. with <https://www.urlencoder.io>).
-</details>
-
 ### 3 - Text over TCP
 
 This method can be used with some home automation systems, tools like [win-remote-control](https://github.com/moefh/win-remote-control) or for certain protocols like [PJLink](https://pjlink.jbmia.or.jp/english/index.htmlPJLink) (used by a lot of projector brands like JVC, Epson or Optoma)
@@ -174,16 +161,85 @@ C++ and hex style control characters are supported to e.g. add a new line (\\n o
 - C++ style characters can be escaped with a single additional backslash (e.g. \\\n)
 - Hex style characters can be escaped with "0\\\\\\" (e.g. 0\\\\\\0x09)
 
+### 4 - Custom Entities
+
+If you want to have a separate entities e.g. for different devices with pre-defined simple commands as well as separate on/off/toggle commands with power state handling you can configure them in the custom entity configuration during the integration setup. This will expose a remote entity for each configured entity with all features and commands from the configuration.
+
+The configuration is in the YAML format and contains different levels to define each entity with it's own remote entity features (on/off/toggle) and optional simple commands. Each command can be any type of supported command by this integration. Parameters for these commands can also be specified. You can find an example configuration below.
+
+Each sub level is separated with a tab. As tabs can't be entered in the web configurator text field you need to either copy it from a text edit program or use 2 spaces instead. Simple command names can be up to 20 characters long, need to be in upper case and can only contain ```A-Z```, ```a-z```, ```0-9``` and ```/_.:+#*°@%()?-```. These names get automatically corrected and shortened during setup if they don't meet the requirements. Any non allowed character gets replaced with an underscore (```_```). If you add new commands or features to an existing entity you need to remove and re-add the entity from the configured entity list afterwards
+
+#### ⚠️ Important
+
+- Please backup your configuration somewhere else if you're running the integration as a custom integration on the remote as custom integrations are not yet included in the remote backup file
+- The name for the ```On``` and ```Off``` features have to be written in quotes as they get converted into boolean values otherwise
+
+#### Example yaml configuration
+
+```yaml
+Entity1:
+  Features:
+    'Off':
+      Type: get
+      Parameter: 192.168.1.102/api/commands/off
+    'On':
+      Type: wol
+      Parameter:
+        address:
+        - ec:bd:d4:01:e9:39
+        - 88:59:b7:25:b9:a5
+        port: 12345
+        interface: 192.168.1.1
+    Toggle:
+      Type: get
+      Parameter: 192.168.1.102/api/commands/toggle
+  Simple Commands:
+    INPUT_1:
+      Type: post
+      Parameter:
+        url: https://httpbin.org/post
+        json:
+          command: input
+          number: 1
+    MENU:
+      Type: tcp-text
+      Parameter:
+        address: 192.168.1.101:12345
+        text: menu\r
+```
+
+#### Using variables
+
+To make your configuration more flexible you can also define your own varibales in a special ```_vars``` block. Recalling them works by using ${varaible_name}
+
+##### Example
+
+```yaml
+_vars:
+  entity1_api_url: http://192.168.1.101/api/commands
+
+Entity1:
+  Features:
+    'Off':
+      Type: get
+      Parameter: ${entitiy1_api_url}/off
+```
+
 ## Installation
 
 ### Run on the remote as a custom integration driver
 
-_⚠️ This feature is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see below)._
+#### Limitations / Disclaimer
 
-#### Missing firmware features
+_⚠️ This requires firmware version 1.9.2 or newer (installing firmware versions above 1.7.14 for Remote Two currently need beta updates to be enabled)._
+
+##### Missing firmware features
 
 - The configuration file of custom integrations are not included in backups.
-- You currently can't update custom integrations. You need to delete the integration from the integrations menu first and then re-upload the new version. Do not edit any activity or macros that includes entities from this integration after you removed the integration and wait until the new version has been uploaded and installed. You also need to re-add entities to the main pages after the update as they are automatically removed. An update function will probably be added once the custom integrations feature will be available in stable firmware releases.
+- You currently can't update custom integrations.
+  - As a workaround you first need to delete the integration twice until it's not shown anymore on the integration page and then re-upload and re-configure the new version
+  - Do not remove any entities exposed by this integration from any activity or macro after you removed the integration and wait until the new version has been uploaded and configured again
+  - You may also need to re-add entities to the main pages after the update as they are automatically removed. Your activities and macros will stay the same and will not need any reconfiguration.
 
 #### 1 - Download integration driver
 

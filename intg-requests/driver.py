@@ -7,11 +7,13 @@ import sys
 import asyncio
 import logging
 from typing import Any
+import shutil
 
 import ucapi
 
 import config
 import media_player
+import remote
 import setup
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
@@ -81,6 +83,50 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
         _LOG.info(f"Received {cmd_id} command with parameter {_params} for entity id {entity.id}")
 
     return await media_player.mp_cmd_assigner(entity.id, cmd_id, _params)
+
+
+
+async def add_custom_entities(custom_entities: dict[str, Any]) -> None:
+    """
+    Adds custom entities using the custom entities configuration.
+
+    :param custom_entities: dictionary of custom entities
+    """
+
+    for entity_name, entity_config in custom_entities.items():
+        _LOG.info(f"Adding custom entity {entity_name}")
+
+        features = []
+        attributes = {}
+
+        id_prefix = config.Setup.get("custom_entities_prefix")
+
+        entity_id = f"{id_prefix}{entity_name.lower()}"
+        features = list(entity_config.get("Features", {}).keys())
+        simple_commands = list(entity_config.get("Simple Commands", {}).keys())
+
+        if features:
+            if "On" and "Off" in features:
+                features.remove("On")
+                features.remove("Off")
+                features.append(ucapi.remote.Features.ON_OFF)
+            if "Toggle" in features:
+                features.remove("Toggle")
+                features.append(ucapi.remote.Features.TOGGLE)
+            attributes = {ucapi.remote.Attributes.STATE: ucapi.remote.States.UNKNOWN}
+
+        #TODO Support for button mappings and ui pages in yaml config
+        #TODO Support for variables in yaml config
+        definition = ucapi.Remote(
+            identifier=entity_id,
+            name=entity_name,
+            features=features,
+            attributes=attributes,
+            simple_commands=simple_commands,
+            cmd_handler=remote.custom_remote_cmd_handler
+        )
+
+        api.available_entities.add(definition)
 
 
 
@@ -178,7 +224,9 @@ def setup_logger():
     logging.getLogger("ucapi.entities").setLevel(level)
     logging.getLogger("ucapi.entity").setLevel(level)
     logging.getLogger("driver").setLevel(level)
+    logging.getLogger("commands").setLevel(level)
     logging.getLogger("media_player").setLevel(level)
+    logging.getLogger("remote").setLevel(level)
     logging.getLogger("sensor").setLevel(level)
     logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
@@ -198,9 +246,30 @@ async def main():
         _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
         config.Setup.set("bundle_mode", True)
 
-        cfg_path = os.environ["UC_CONFIG_HOME"] + "/config.json"
+        cfg_path = os.environ["UC_CONFIG_HOME"] + "/" + config.Setup.get("cfg_path")
         config.Setup.set("cfg_path", cfg_path)
         _LOG.info("The configuration is stored in " + cfg_path)
+
+        # https://github.com/unfoldedcircle/core-api/blob/main/doc/integration-driver/driver-installation.md#installation-archive-example
+        # https://discord.com/channels/553671366411288576/970313654190887011/1406363994121441380
+        #BUG Files in ./config and ./data folder in custom integration archives doesn't get copied to the internal folders during installation.
+        # Putting it in ./bin works but that folder is read only
+        #WORKAROUND: When the yaml config doesn't exist in UC_CONFIG_HOME copy file from ./bin to a new file in ./config during runtime in driver.py
+        #TODO Create GitHub issue with an example custom integration
+        if not os.path.isfile(os.environ["UC_CONFIG_HOME"] + "/" + config.Setup.get("yaml_path")):
+            _LOG.debug("Copying custom entities yaml file from ./bin to to UC_CONFIG_HOME")
+            source = config.Setup.get("yaml_path")
+            target = os.environ["UC_CONFIG_HOME"] + "/" + config.Setup.get("yaml_path")
+            try:
+                shutil.copyfile(source, target)
+            except Exception as e:
+                _LOG.critical("Error while copying custom entities yaml file: " + str(e))
+                _LOG.critical("Stopping integration driver")
+                raise SystemExit(0) from e
+
+        yaml_path = os.environ["UC_CONFIG_HOME"] + "/" + config.Setup.get("yaml_path")
+        config.Setup.set("yaml_path", yaml_path)
+        _LOG.info("The custom entities yaml configuration is stored in " + yaml_path)
 
     else:
         logging.basicConfig(format="%(asctime)s.%(msecs)03d | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")

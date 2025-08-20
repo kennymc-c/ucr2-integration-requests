@@ -33,15 +33,16 @@ async def add_rq_sensor(ent_id: str, name: str):
 def update_rq_sensor(entity_id: str, response: str):
     """Parse http request response with configured regular expression and update sensor entity value"""
 
+    if driver.api.configured_entities.get(entity_id) is None:
+        _LOG.info(f"Entity {entity_id} not found in configured entities. Skip updating attributes")
+        return True
+
     attributes_to_send = {ucapi.sensor.Attributes.STATE: ucapi.sensor.States.ON, ucapi.sensor.Attributes.VALUE: response}
 
     try:
-        api_update_attributes = driver.api.configured_entities.update_attributes(entity_id, attributes_to_send)
+        driver.api.configured_entities.update_attributes(entity_id, attributes_to_send)
     except Exception as e:
         _LOG.error(e)
         raise Exception("Error while updating sensor value for entity id " + entity_id) from e
-
-    if not api_update_attributes:
-        raise ModuleNotFoundError("Sensor entity " + entity_id + " not found or added as configured entity. Skipping update.")
 
     _LOG.info("Updated http request response sensor value to " + response)

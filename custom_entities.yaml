@@ -1,0 +1,29 @@
+Entity1:
+  Features:
+    'Off':
+      Type: get
+      Parameter: 192.168.1.102/api/commands/off
+    'On':
+      Type: wol
+      Parameter:
+        address:
+        - ec:bd:d4:01:e9:39
+        - 88:59:b7:25:b9:a5
+        port: 12345
+        interface: 192.168.1.1
+    Toggle:
+      Type: get
+      Parameter: 192.168.1.102/api/commands/toggle
+  Simple Commands:
+    INPUT_1:
+      Type: post
+      Parameter:
+        url: https://httpbin.org/post
+        json:
+          command: input
+          number: 1
+    MENU:
+      Type: tcp-text
+      Parameter:
+        address: 192.168.1.101:12345
+        text: menu\r

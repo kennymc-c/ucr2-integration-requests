@@ -1,21 +1,21 @@
 {
   "driver_id": "requests",
-  "version": "0.7.4",
-  "release_date": "2025-07-24",
+  "version": "0.8.0",
+  "release_date": "2025-08-20",
   "min_core_api": "0.24.3",
-  "name": { 
-      "en": "HTTP requests, WoL & text over TCP",
-      "de": "HTTP-Anfragen, WoL & Text über TCP"
+  "name": {
+    "en": "HTTP requests, WoL & text over TCP",
+    "de": "HTTP-Anfragen, WoL & Text über TCP"
   },
   "icon": "uc:webhook",
   "description": {
-      "en": "A network multi tool integration to send HTTP get/post/patch/put/delete/head requests, wake-on-LAN magic packets and text over tcp",
-      "de": "Eine Netzwerk Multi-Tool-Integration zum Senden von HTTP Get/Post/Patch/Put/Delete/Head-Anfragen, Wake-on-LAN Magic Pakets und Text über TCP"
+    "en": "A network multi tool integration to send HTTP get/post/patch/put/delete/head requests, wake-on-LAN magic packets and text over tcp",
+    "de": "Eine Netzwerk Multi-Tool-Integration zum Senden von HTTP Get/Post/Patch/Put/Delete/Head-Anfragen, Wake-on-LAN Magic Pakets und Text über TCP"
   },
   "port": 9081,
   "developer": {
-      "name": "kennymc.c",
-      "url": "https://github.com/kennymc-c/ucr2-integration-requests"
+    "name": "kennymc.c",
+    "url": "https://github.com/kennymc-c/ucr2-integration-requests"
   },
   "home_page": "https://github.com/kennymc-c/ucr2-integration-requests",
   "setup_data_schema": {
@@ -24,15 +24,38 @@
       "de": "Konfiguration"
     },
     "settings": [
-      {  
-      "id": "advanced_settings",
-      "label": {
-        "en": "Configure advanced settings",
-        "de": "Erweiterte Einstellungen konfigurieren"
-      },
-      "field": {
-        "checkbox": {
-          "value": false
+      {
+        "id": "setup_action",
+        "label": {
+          "en": "Choose a setup action",
+          "de": "Wähle eine Einrichtungsoption aus"
+        },
+        "field": {
+          "dropdown": {
+            "value": "finish",
+            "items": [
+              {
+                "id": "finish",
+                "label": {
+                  "en": "Finish Setup",
+                  "de": "Einrichtung abschließen"
+                }
+              },
+              {
+                "id": "advanced",
+                "label": {
+                  "en": "Configure advanced settings",
+                  "de": "Erweiterte Einstellungen konfigurieren"
+                }
+              },
+              {
+                "id": "custom",
+                "label": {
+                  "en": "Configure custom entities",
+                  "de": "Eigene Entitäten konfigurieren"
+                }
+              }
+            ]
           }
         }
       }
