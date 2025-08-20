@@ -11,7 +11,6 @@ Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library), [requests](https://github.com/psf/requests), [pywakeonlan](https://github.com/remcohaszing/pywakeonlan), [getmac](https://github.com/GhostofGoes/getmac) and [pyyaml](https://github.com/yaml/pyyaml).
 
 - [Supported entity features](#supported-entity-features)
-- [Planned features](#planned-features)
 - [Configuration](#configuration)
 - [Usage](#usage)
   - [1 - Wake-on-lan](#1---wake-on-lan)
@@ -68,12 +67,6 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
   - This method can be used with some home automation systems, tools like [win-remote-control](https://github.com/moefh/win-remote-control) or for protocols like PJLink (used by a lot of projector brands like JVC, Epson or Optoma)
   - Support for c++ and hex style control characters (e.g. new line, carriage return, tabulator etc.)
   - The default timeout can be changed in the advanced setup settings
-
-## Planned features
-
-- SSH client entity
-
-Additional smaller planned improvements or changes are labeled with #TODO in the code
 
 ## Configuration
 
@@ -167,7 +160,9 @@ If you want to have a separate entities e.g. for different devices with pre-defi
 
 The configuration is in the YAML format and contains different levels to define each entity with it's own remote entity features (on/off/toggle) and optional simple commands. Each command can be any type of supported command by this integration. Parameters for these commands can also be specified. You can find an example configuration below.
 
-Each sub level is separated with a tab. As tabs can't be entered in the web configurator text field you need to either copy it from a text edit program or use 2 spaces instead. Simple command names can be up to 20 characters long, need to be in upper case and can only contain ```A-Z```, ```a-z```, ```0-9``` and ```/_.:+#*°@%()?-```. These names get automatically corrected and shortened during setup if they don't meet the requirements. Any non allowed character gets replaced with an underscore (```_```). If you add new commands or features to an existing entity you need to remove and re-add the entity from the configured entity list afterwards
+Each sub level is separated with a tab. As tabs can't be entered in the web configurator text field you need to either copy it from a text edit program or use 2 spaces instead. Simple command names can be up to 20 characters long, need to be in upper case and can only contain ```A-Z```, ```a-z```, ```0-9``` and ```/_.:+#*°@%()?-```. These names get automatically corrected and shortened during setup if they don't meet the requirements. Any non allowed character gets replaced with an underscore (```_```). If you add new commands or features to an existing entity you need to remove and re-add the entity from the configured entity list afterwards.
+
+If you removed an entity from the configuration file it doesn't get automatically removed from your configured entities. You have to do this manually. If you restart the integration they will also be shown as unavailable.
 
 #### ⚠️ Important
 
@@ -231,7 +226,7 @@ Entity1:
 
 #### Limitations / Disclaimer
 
-_⚠️ This requires firmware version 1.9.2 or newer (installing firmware versions above 1.7.14 for Remote Two currently need beta updates to be enabled)._
+*⚠️ This requires firmware version 1.9.2 or newer (installing firmware versions above 1.7.14 for Remote Two currently need beta updates to be enabled).*
 
 ##### Missing firmware features
 
@@ -249,7 +244,7 @@ Download the uc-intg-requests-x.x.x-aarch64.tar.gz archive in the assets section
 
 ##### Upload in Web Configurator
 
-Since firmware version 2.2.0 you can upload custom integrations in the web configurator. Go to _Integrations_ in the top menu, on the top right click on *Add new/Install custom_ and choose the downloaded tar.gz file.
+Since firmware version 2.2.0 you can upload custom integrations in the web configurator. Go to *Integrations* in the top menu, on the top right click on *Add new/Install custom_ and choose the downloaded tar.gz file.
 
 ##### Alternative - Upload via Core API or 3rd party tools
 
