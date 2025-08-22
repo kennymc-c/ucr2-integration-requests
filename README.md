@@ -168,6 +168,7 @@ If you removed an entity from the configuration file it doesn't get automaticall
 
 - Please backup your configuration somewhere else if you're running the integration as a custom integration on the remote as custom integrations are not yet included in the remote backup file
 - The name for the ```On``` and ```Off``` features have to be written in quotes as they get converted into boolean values otherwise
+- If you have any special characters or the words ```true, false, yes, no, on, off, null``` in your command parameters or names it's advised to put it in quotes as well
 
 #### Example yaml configuration
 
