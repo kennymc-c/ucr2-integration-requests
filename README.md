@@ -160,9 +160,11 @@ If you want to have a separate entities e.g. for different devices with pre-defi
 
 The configuration is in the YAML format and contains different levels to define each entity with it's own remote entity features (on/off/toggle) and optional simple commands. Each command can be any type of supported command by this integration. Parameters for these commands can also be specified. You can find an example configuration below.
 
-Each sub level is separated with a tab. As tabs can't be entered in the web configurator text field you need to either copy it from a text edit program or use 2 spaces instead. Simple command names can be up to 20 characters long, need to be in upper case and can only contain ```A-Z```, ```a-z```, ```0-9``` and ```/_.:+#*°@%()?-```. These names get automatically corrected and shortened during setup if they don't meet the requirements. Any non allowed character gets replaced with an underscore (```_```). If you add new commands or features to an existing entity you need to remove and re-add the entity from the configured entity list afterwards.
+Each sub level is separated with a tab. As tabs can't be entered in the web configurator text field you need to either copy it from a text edit program or use 2 spaces instead. Simple command names can be up to 20 characters long, need to be in upper case and can only contain ```A-Z```, ```a-z```, ```0-9``` and ```/_.:+#*°@%()?-```. These names get automatically corrected and shortened during setup if they don't meet the requirements. Any non allowed character gets replaced with an underscore (```_```).
 
-If you removed an entity from the configuration file it doesn't get automatically removed from your configured entities. You have to do this manually. If you restart the integration they will also be shown as unavailable.
+If you add new commands or features to an existing entity you need to remove and re-add the entity from the configured entity list afterwards. If you removed an entity from the configuration file it doesn't get automatically removed from your configured entities. You have to do this manually. If you restart the integration they will also be shown as unavailable.
+
+Power state handling is currently not working with send command and send command sequence. Please use the dedicated switch on/of/toggle commands.
 
 #### ⚠️ Important
 

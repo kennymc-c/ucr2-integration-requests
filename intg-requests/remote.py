@@ -52,8 +52,8 @@ async def update_remote_state(entity_id: str, cmd_id: str):
 
 
 
-async def send_command(command: str, entity_id: str, entity_config: dict[str, Any]):
-    """Send a command depend on the command type from the custom entities configuration"""
+async def send_command(entity_id: str, entity_config: dict[str, Any], command: str = None) -> ucapi.StatusCodes:
+    """Send a command depending on the command type from the custom entities configuration"""
 
     features = entity_config.get("Features").keys()
     simple_commands =  entity_config.get("Simple Commands").keys()
@@ -61,7 +61,7 @@ async def send_command(command: str, entity_id: str, entity_config: dict[str, An
     # Entity feature names that are used in the configuration have a capital first letter while entity command names are all lower case
     features = [f.lower() for f in features]
 
-    if command.lower() in features: #command.lower() if the name is send with the wring spelling by a send command/command sequence command
+    if command.lower() in features: #command.lower() if the name is send with the wrong spelling by a send command/command sequence command
         # Use command.title() to match the corresponding entity feature spelling (first letter in upper case) for the command that is used in the entity config
         cmd_type = entity_config.get("Features").get(command.title()).get("Type")
         cmd_param = entity_config.get("Features").get(command.title()).get("Parameter")
@@ -96,17 +96,14 @@ async def send_command(command: str, entity_id: str, entity_config: dict[str, An
 
 
 
-async def send_command_sequence(_params: dict[str, Any], entity_id: str, entity_config: dict[str, Any]):
-    """Handle send command sequence parameters and send each command with send_command()"""
+async def handle_params(entity_id: str, entity_config: dict[str, Any], _params: dict[str, Any]) -> ucapi.StatusCodes:
+    """Calculate parameters for the command and send it with send_command()"""
 
+    command = _params.get("command")
     sequence = _params.get("sequence")
     repeat = _params.get("repeat")
     delay = _params.get("delay")
     hold = _params.get("hold")
-
-    def rep_warn(command):
-        if repeat != 1:
-            _LOG.warning("Execution of the command " + command + " failed. Remaining " + str(repeat-1) + " repetitions will no longer be executed")
 
     if hold is None or hold == "":
         hold = 0
@@ -121,34 +118,68 @@ async def send_command_sequence(_params: dict[str, Any], entity_id: str, entity_
         _LOG.debug(str(delay) + " seconds delay will be ignored as the command will not be repeated (repeat = 1)")
         delay = 0
 
-    _LOG.info(f"Command sequence: {sequence}")
+    def rep_warn(command):
+        if repeat != 1:
+            if sequence:
+                _LOG.warning("Execution of command " + command + " from command sequence " + str(sequence) + " failed. \
+Remaining " + str(repeat-1) + " sequence repetition(s) will no longer be executed")
+            else:
+                _LOG.warning("Execution of command " + command + " failed. Remaining " + str(repeat-1) + " repetition(s) will no longer be executed")
 
-    for command in sequence:
-        _LOG.debug("Sending command: " + command)
-        try:
-            i = 0
-            r = range(repeat)
-            for i in r:
-                i = i+1
-                if repeat != 1:
-                    _LOG.debug("Round " + str(i) + " for command " + command)
-                if hold != 0:
+    i = 0
+    r = range(repeat)
+
+    for i in r:
+        i = i+1
+        if repeat != 1:
+            if sequence:
+                _LOG.debug("Round " + str(i) + " for command sequence " + str(sequence))
+            else:
+                _LOG.debug("Round " + str(i) + " for command " + command)
+
+        if hold != 0:
+            if sequence:
+                for seq_command in sequence:
+                    #Hold each command of the sequence
                     cmd_start = time.time()*1000
+                    _LOG.debug("Executing command " + seq_command + " from sequence " + str(sequence) + " for hold time of " + str(hold) + " milliseconds")
                     while time.time()*1000 - cmd_start < hold:
-                        await send_command(command, entity_id, entity_config)
-                        await asyncio.sleep(0)
-                else:
-                    await send_command(command, entity_id, entity_config)
+                        cmd_status = await send_command(entity_id, entity_config, seq_command)
+                        if cmd_status != ucapi.StatusCodes.OK:
+                            rep_warn(seq_command)
+                            return cmd_status
+            else:
+                cmd_start = time.time()*1000
+                _LOG.debug("Executing command " + command + " for hold time of " + str(hold) + " milliseconds")
+                while time.time()*1000 - cmd_start < hold:
+                    cmd_status = await send_command(entity_id, entity_config, command)
+                    if cmd_status != ucapi.StatusCodes.OK:
+                        rep_warn(command)
+                        return cmd_status
                     await asyncio.sleep(0)
-                await asyncio.sleep(delay)
-        except Exception as e:
-            rep_warn(command)
-            error = str(e)
-            if error:
-                _LOG.error(f"Failed to send command {command}: {error}")
-            return ucapi.StatusCodes.BAD_REQUEST
 
-    return ucapi.StatusCodes.OK
+            await asyncio.sleep(0)
+
+        else:
+            if sequence:
+                for seq_command in sequence:
+                    _LOG.debug("Executing command " + seq_command + " from sequence " + str(sequence))
+                    cmd_status = await send_command(entity_id, entity_config, seq_command)
+                    if cmd_status != ucapi.StatusCodes.OK:
+                        rep_warn(seq_command)
+                        return cmd_status
+            else:
+                _LOG.debug("Executing command " + command)
+                cmd_status = await send_command(entity_id, entity_config, command)
+                if cmd_status != ucapi.StatusCodes.OK:
+                    rep_warn(command)
+                    return cmd_status
+            await asyncio.sleep(0)
+
+        if i < repeat:
+            await asyncio.sleep(delay)
+
+    return cmd_status
 
 
 
@@ -178,17 +209,12 @@ async def custom_remote_cmd_handler(entity: ucapi.Remote, cmd_id: str, _params: 
             match cmd_id:
 
                 case ucapi.remote.Commands.ON | ucapi.remote.Commands.OFF | ucapi.remote.Commands.TOGGLE:
-                    cmd_status = await send_command(command=cmd_id, entity_id=entity.id, entity_config=entity_config)
+                    cmd_status = await send_command(entity_id=entity.id, entity_config=entity_config, command=cmd_id)
                     await update_remote_state(entity_id=entity.id, cmd_id=cmd_id)
                     return cmd_status
 
-                case ucapi.remote.Commands.SEND_CMD:
-                    command = _params.get("command")
-                    cmd_status = await send_command(command, entity_id=entity.id, entity_config=entity_config)
-                    return cmd_status
-
-                case ucapi.remote.Commands.SEND_CMD_SEQUENCE:
-                    cmd_status = await send_command_sequence(_params, entity_id=entity.id, entity_config=entity_config)
+                case ucapi.remote.Commands.SEND_CMD | ucapi.remote.Commands.SEND_CMD_SEQUENCE:
+                    cmd_status = await handle_params(entity_id=entity.id, entity_config=entity_config, _params=_params)
                     return cmd_status
 
                 case _:
