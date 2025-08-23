@@ -203,23 +203,30 @@ async def custom_remote_cmd_handler(entity: ucapi.Remote, cmd_id: str, _params: 
     custom_entities = config.Setup.get("custom_entities", python_dict=True)
     id_prefix = config.Setup.get("custom_entities_prefix")
 
-    for entity_name, entity_config in custom_entities.items():
+    #Search for the entity configuration by matching the entity id with the configured custom entities
+    entity_config = None
+    for entity_name, config_item in custom_entities.items():
         if entity.id == f"{id_prefix}{entity_name.lower()}":
+            entity_config = config_item
+            break
 
-            match cmd_id:
-
-                case ucapi.remote.Commands.ON | ucapi.remote.Commands.OFF | ucapi.remote.Commands.TOGGLE:
-                    cmd_status = await send_command(entity_id=entity.id, entity_config=entity_config, command=cmd_id)
-                    await update_remote_state(entity_id=entity.id, cmd_id=cmd_id)
-                    return cmd_status
-
-                case ucapi.remote.Commands.SEND_CMD | ucapi.remote.Commands.SEND_CMD_SEQUENCE:
-                    cmd_status = await handle_params(entity_id=entity.id, entity_config=entity_config, _params=_params)
-                    return cmd_status
-
-                case _:
-                    _LOG.error(f"Command \"{cmd_id}\" not implemented for custom entities")
-                    return ucapi.StatusCodes.NOT_IMPLEMENTED
-
-        _LOG.error(f"Custom entity {entity_name} not found in configuration")
+    if entity_config is None:
+        _LOG.error(f"Custom entity {entity.id} not found in configuration")
         return ucapi.StatusCodes.NOT_FOUND
+
+    match cmd_id:
+        case ucapi.remote.Commands.ON | ucapi.remote.Commands.OFF | ucapi.remote.Commands.TOGGLE:
+            cmd_status = await send_command(entity_id=entity.id, entity_config=entity_config, command=cmd_id)
+            if cmd_status == ucapi.StatusCodes.OK:
+                await update_remote_state(entity_id=entity.id, cmd_id=cmd_id)
+            else:
+                _LOG.info(f"Command {cmd_id} for entity id {entity.id} failed. State will not be updated")
+            return cmd_status
+
+        case ucapi.remote.Commands.SEND_CMD | ucapi.remote.Commands.SEND_CMD_SEQUENCE:
+            cmd_status = await handle_params(entity_id=entity.id, entity_config=entity_config, _params=_params)
+            return cmd_status
+
+        case _:
+            _LOG.error(f"Command \"{cmd_id}\" not implemented for custom entities")
+            return ucapi.StatusCodes.NOT_IMPLEMENTED
