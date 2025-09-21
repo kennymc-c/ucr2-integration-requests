@@ -252,6 +252,14 @@ class Setup:
         "custom_entities_prefix": "remote-custom-",
         "tcp_text_timeout": 2,
         "tcp_text_response_wait": True,
+        "tcp_text_terminator": "\n",
+        "tcp_text_terminator_dropdown_items": [
+                                                {"id": "None", "label": {"en": "No command terminator", "de": "Kein Befehlsabschlusszeichen"}},
+                                                {"id": "\n", "label": {"en": "\\n", "de": "\\n"}},
+                                                {"id": "\r", "label": {"en": "\\r", "de": "\\r"}},
+                                                {"id": "\r\n", "label": {"en": "\\r\\n", "de": "\\r\\n"}},
+                                                {"id": ";", "label": {"en": ";", "de": ";"}}
+                                                ],
         "rq_timeout": 2,
         "rq_ssl_verify": True,
         "rq_user_agent": "uc-intg-requests",
@@ -288,12 +296,14 @@ class Setup:
                         "de": "Text über TCP"
                         }
     }
-    __setters = ["standby", "setup_complete", "setup_reconfigure", "tcp_text_timeout", "tcp_text_response_wait", "rq_timeout", "rq_user_agent", "rq_ssl_verify", \
+    __setters = ["standby", "setup_complete", "setup_reconfigure", "tcp_text_timeout", "tcp_text_response_wait", "tcp_text_terminator", \
+                "tcp_text_terminator_dropdown_items", "rq_timeout", "rq_user_agent", "rq_ssl_verify", \
                 "rq_fire_and_forget", "rq_response_regex", "rq_response_nomatch_option", "custom_entities", "custom_entities_set", \
                 "bundle_mode", "cfg_path", "yaml_path", "setup_step"]
     #Skip runtime only related values in config file
-    __storers = ["setup_complete", "tcp_text_timeout", "tcp_text_response_wait", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", \
-    "rq_response_regex", "rq_response_nomatch_option", "custom_entities", "custom_entities_set"]
+    __storers = ["setup_complete", "tcp_text_timeout", "tcp_text_response_wait", "tcp_text_terminator", "tcp_text_terminator_dropdown_items", \
+                "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", \
+                "rq_response_regex", "rq_response_nomatch_option", "custom_entities", "custom_entities_set"]
 
     all_cmds = ["get", "post", "patch", "put", "delete", "head", "wol", "tcp-text"]
     rq_ids = [__conf["id-rq-sensor"], __conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"], __conf["id-delete"], __conf["id-head"]]
@@ -419,7 +429,7 @@ from the default value of " + str(Setup.__conf[key]))
                 if "tcp_text_timeout" in configfile:
                     Setup.__conf["tcp_text_timeout"] = configfile["tcp_text_timeout"]
                     _LOG.info("Loaded custom text over tcp timeout of " + str(configfile["tcp_text_timeout"]) + " seconds \
-    into runtime storage from " + Setup.__conf["cfg_path"])
+into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
                     _LOG.debug("Skip loading custom text over tcp timeout as it has not been changed during setup. \
 The Default value of " + str(Setup.get("tcp_text_timeout")) + " seconds will be used")
@@ -427,10 +437,18 @@ The Default value of " + str(Setup.get("tcp_text_timeout")) + " seconds will be 
                 if "tcp_text_response_wait" in configfile:
                     Setup.__conf["tcp_text_response_wait"] = configfile["tcp_text_response_wait"]
                     _LOG.info("Loaded custom text over tcp wait for response " + str(configfile["tcp_text_response_wait"]) + " flag \
-    into runtime storage from " + Setup.__conf["cfg_path"])
+into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
                     _LOG.debug("Skip loading custom text over tcp response wait flag as it has not been changed during setup. \
 The Default value of " + str(Setup.get("tcp_text_response_wait")) + " will be used")
+
+                if "tcp_text_terminator" in configfile:
+                    Setup.__conf["tcp_text_terminator"] = configfile["tcp_text_terminator"]
+                    _LOG.info("Loaded custom text over tcp command terminator " + repr(configfile["tcp_text_terminator"]) + " \
+into runtime storage from " + Setup.__conf["cfg_path"])
+                else:
+                    _LOG.debug("Skip loading custom text over tcp command terminator as it has not been changed during setup. \
+The Default value of " + repr(Setup.get("tcp_text_terminator")) + " will be used")
 
                 if "rq_user_agent" in configfile:
                     Setup.__conf["rq_user_agent"] = configfile["rq_user_agent"]

@@ -145,6 +145,8 @@ async def show_advanced_setup(msg: ucapi.UserDataResponse) -> ucapi.RequestUserI
     try:
         tcp_text_timeout = config.Setup.get("tcp_text_timeout")
         tcp_text_response_wait = config.Setup.get("tcp_text_response_wait")
+        tcp_text_terminator = config.Setup.get("tcp_text_terminator")
+        tcp_text_terminator_dropdown_items = config.Setup.get("tcp_text_terminator_dropdown_items")
         rq_timeout = config.Setup.get("rq_timeout")
         rq_ssl_verify = config.Setup.get("rq_ssl_verify")
         rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
@@ -155,10 +157,14 @@ async def show_advanced_setup(msg: ucapi.UserDataResponse) -> ucapi.RequestUserI
     except ValueError as v:
         _LOG.error(v)
 
+    #Get the index of the currently stored value from the corresponding dropdown items list to set it as the default value for the dropdown
+    index_tcp_text_terminator = next((i for i, d in enumerate(tcp_text_terminator_dropdown_items) if d.get("id") == tcp_text_terminator), 0)
+    index_rq_response_nomatch_option = next((i for i, d in enumerate(rq_response_nomatch_dropdown_items) if d.get("id") == rq_response_nomatch_option), 0)
+
     _LOG.debug(f"Currently stored - tcp_text_timeout: {str(tcp_text_timeout)}, tcp_text_response_wait: {str(tcp_text_response_wait)}, \
-rq_timeout: {str(rq_timeout)}, rq_ssl_verify: {str(rq_ssl_verify)}, rq_fire_and_forget: {str(rq_fire_and_forget)}, \
+tcp_text_terminator: {repr(tcp_text_terminator)}, rq_timeout: {str(rq_timeout)}, rq_ssl_verify: {str(rq_ssl_verify)}, rq_fire_and_forget: {str(rq_fire_and_forget)}, \
 rq_user_agent: {str(rq_user_agent)}, rq_response_regex: {str(rq_response_regex)}, \
-rq_response_options: {str(rq_response_nomatch_option)}")
+rq_response_nomatch_option: {str(rq_response_nomatch_option)}")
 
     config.Setup.set("setup_step", "handle_advanced")
 
@@ -193,7 +199,7 @@ rq_response_options: {str(rq_response_nomatch_option)}")
                                     }
                         },
             },
-        {
+            {
                 "id": "tcp_text_response_wait",
                 "label": {
                     "en": "Wait for a text over tcp response message:",
@@ -201,6 +207,18 @@ rq_response_options: {str(rq_response_nomatch_option)}")
                     },
                 "field": {"checkbox": {
                                     "value": tcp_text_response_wait
+                                    }
+                        },
+            },
+            {
+                "id": "tcp_text_terminator",
+                "label": {
+                    "en": "Automatically add a command terminator character at the end of each text over TCP command:",
+                    "de": "Automatisch ein Befehlsabschlusszeichen am Ende jedes Text über TCP-Befehls hinzufügen:"
+                    },
+                "field": {"dropdown": {
+                                    "value": tcp_text_terminator_dropdown_items[index_tcp_text_terminator]["id"],
+                                    "items": tcp_text_terminator_dropdown_items
                                     }
                         },
             },
@@ -258,7 +276,7 @@ rq_response_options: {str(rq_response_nomatch_option)}")
                     "de": "Antwort, falls keine Übereinstimmung mit dem regulären Ausdruck gefunden wurde:"
                     },
                 "field": {"dropdown": {
-                                    "value": rq_response_nomatch_dropdown_items[0]["id"],
+                                    "value": rq_response_nomatch_dropdown_items[index_rq_response_nomatch_option]["id"],
                                     "items": rq_response_nomatch_dropdown_items
                                     }
                         },
@@ -302,6 +320,7 @@ async def handle_response_advanced(msg: ucapi.UserDataResponse) -> ucapi.Request
 
     tcp_text_timeout = msg.input_values["tcp_text_timeout"]
     tcp_text_response_wait = msg.input_values["tcp_text_response_wait"]
+    tcp_text_terminator = msg.input_values["tcp_text_terminator"]
     rq_timeout = msg.input_values["rq_timeout"]
     rq_ssl_verify = msg.input_values["rq_ssl_verify"]
     rq_fire_and_forget = msg.input_values["rq_fire_and_forget"]
@@ -336,6 +355,14 @@ async def handle_response_advanced(msg: ucapi.UserDataResponse) -> ucapi.Request
             config.Setup.set("setup_complete", False)
             return ucapi.SetupError()
         _LOG.info("Do not wait for text over tcp response: " +  str(tcp_text_response_wait))
+
+    try:
+        config.Setup.set("tcp_text_terminator", tcp_text_terminator)
+    except Exception as e:
+        _LOG.error(e)
+        config.Setup.set("setup_complete", False)
+        return ucapi.SetupError()
+    _LOG.info("Text over tcp terminator: " +  str(tcp_text_terminator))
 
     try:
         config.Setup.set("rq_timeout", rq_timeout)
@@ -414,9 +441,9 @@ async def show_custom_entity_config(msg: ucapi.UserDataResponse) -> ucapi.Reques
     config.Setup.set("setup_step", "handle_custom")
 
     #TODO Add device profiles as checkboxes that will add them to the main configuration file. Another page will show variables from the configuration file (_vars block)
-    # Possible profiles: R_volution, JMedia Light Manager, Pioneer Receiver
+    # Possible profiles: R_volution, JMedia Light Manager, Pioneer Receiver, Anthem
 
-    #BUG \n\n causing a formatting error (wrong font and alignment)
+    #BUG \n\n causing a formatting error (wrong font and alignment) in label value field
     #TODO Create issue on bug & feature tracker with examples from the python example configuration
     return ucapi.RequestUserInput(
         {

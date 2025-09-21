@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.3] - 2025-09-21
+
+### Added
+
+- Text over TCP: Added a setting to choose a command terminator character for text over tcp commands
+  - The default terminator will be \n (new line) to not break existing configurations as this has been hard coded in previous versions
+- Wake-on-LAN: Added support for no and dots (.) as separators for mac addresses as they can also be used with the Python wakeonlan library
+
+### Changed
+
+- ⚠️ Important: This integration now requires firmware 2.6.9 or newer when running as a custom integration on the remote as this fixes an issue with the custom entities configuration
+- Updated UC Python library to 0.3.2
+- Updated pyinstaller build image to 3.11.13-0.4.0
+
+### Fixed
+
+- Fixed an issue where there currently set http response no match option was not used as the default dropdown item in the advanced setup
+- Fixed manual build instructions in Readme and align with the actual Github build workflow
+
 ## [0.8.2] - 2025-08-23
 
 ### Fixed

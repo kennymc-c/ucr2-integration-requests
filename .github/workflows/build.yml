@@ -8,7 +8,7 @@
   env:
     INTG_NAME: requests
     # Python version to use in the builder image. See https://hub.docker.com/r/unfoldedcircle/r2-pyinstaller for possible versions.
-    PYTHON_VER: 3.11.12-0.3.0
+    PYTHON_VER: 3.11.13-0.4.0
   
   jobs:
     build:
@@ -53,13 +53,11 @@
         - name: Prepare artifacts
           shell: bash
           run: |
-            mkdir -p artifacts/bin #artifacts/config
+            mkdir -p artifacts/bin artifacts/config
             mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
             mv artifacts/bin/intg-${{ env.DRIVER_ID }} artifacts/bin/driver
             cp driver.json artifacts/
-            #BUG Files in ./config and ./data folder in custom integration archives doesn't seem to be copied to the internal folders during installation. Putting it in ./bin works but that folder is read only
-            #WORKAROUND: Copy file from ./bin to a new file in ./config during runtime in driver.py
-            cp custom_entities.yaml artifacts/bin #artifacts/config
+            cp custom_entities.yaml artifacts/config
             echo "ARTIFACT_NAME=uc-intg-${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
             
         - name: Create upload artifact archive

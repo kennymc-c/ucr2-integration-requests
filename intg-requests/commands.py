@@ -7,7 +7,7 @@ import logging
 import ast
 import shlex
 
-from re import sub, match, search, IGNORECASE
+from re import sub, search, fullmatch, IGNORECASE
 from ipaddress import ip_address, IPv4Address, IPv6Address, AddressValueError
 import urllib3 #Needed to optionally deactivate requests ssl verify warning message
 
@@ -35,13 +35,17 @@ def get_mac(param: str):
         param_type = "ip"
         _LOG.debug("\""+param+"\" is an ip address. Using getmac to discover mac address")
     except ValueError:
-        #RegEx for mac addresses with colons or hyphens
-        is_valid_mac = match(r"([0-9A-F]{2}[:]){5}[0-9A-F]{2}|"r"([0-9A-F]{2}[-]){5}[0-9A-F]{2}",string=param,flags=IGNORECASE)
-        try:
-            bool(is_valid_mac.group())
+        mac_regex = (
+            r"([0-9A-F]{2}[:]){5}[0-9A-F]{2}"
+            r"|([0-9A-F]{2}[-]){5}[0-9A-F]{2}"
+            r"|([0-9A-F]{2}[.]){5}[0-9A-F]{2}"
+            r"|[0-9A-F]{12}"
+        )
+        is_valid_mac = fullmatch(mac_regex, param, flags=IGNORECASE)
+        if is_valid_mac:
             param_type = "mac"
-            _LOG.debug("\""+param+"\"  is a mac address")
-        except AttributeError:
+            _LOG.debug("\""+param+"\" is a mac address")
+        else:
             param_type = "hostname"
             _LOG.debug("\""+param+"\" could be a hostname. Using getmac to discover the mac address")
 
@@ -49,32 +53,31 @@ def get_mac(param: str):
         if config.Setup.get("bundle_mode"):
             raise OSError("Using an IP address for wake-on-lan is not supported when running the integration on the remote due to sandbox limitations. \
 Please use the mac address instead")
-        else:
+        try:
+            IPv4Address(param)
             try:
-                IPv4Address(param)
+                param = get_mac_address(ip=param)
+            except Exception as e:
+                _LOG.debug(e)
+            if param is not None:
+                _LOG.info("Got mac address from entered ipv4 ip: " + param)
+            if param == "" or param is None:
+                raise OSError("Could not convert ipv4 with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
+Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
+        except AddressValueError:
+            try:
+                IPv6Address(param)
                 try:
-                    param = get_mac_address(ip=param)
+                    param = get_mac_address(ip6=param)
                 except Exception as e:
                     _LOG.debug(e)
                 if param is not None:
-                    _LOG.info("Got mac address from entered ipv4 ip: " + param)
+                    _LOG.info("Got mac address from entered ipv6 ip: " + param)
                 if param == "" or param is None:
-                    raise OSError("Could not convert ipv4 with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
+                    raise OSError("Could not convert ipv6 with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
 Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
-            except AddressValueError:
-                try:
-                    IPv6Address(param)
-                    try:
-                        param = get_mac_address(ip6=param)
-                    except Exception as e:
-                        _LOG.debug(e)
-                    if param is not None:
-                        _LOG.info("Got mac address from entered ipv6 ip: " + param)
-                    if param == "" or param is None:
-                        raise OSError("Could not convert ipv6 with getmac module. Discover the mac address from an ip address or a hostname may not work on all systems. \
-Please refer to the getmac supported platforms (https://github.com/GhostofGoes/getmac?tab=readme-ov-file#platforms-currently-supported)")
-                except AddressValueError as v:
-                    raise ValueError(v) from v
+            except AddressValueError as v:
+                raise ValueError(v) from v
 
     if param_type == "hostname":
         if config.Setup.get("bundle_mode"):
@@ -313,8 +316,12 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
 
 
 
+#TODO Add bytes over TCP command that can be used to send binary data
 async def tcp_text(cmd_param: str) -> str:
     """Send a text over TCP command to the passed address and return the status code."""
+
+    #TODO Add an expected ok response message parameter that can be used to check if the server response is correct or an error occurred
+    #TODO Add a response sensor like for http requests to show the last received response message
 
     if isinstance(cmd_param, dict): # Check if cmd_param is already a dict when coming from a custom entity config
         address = cmd_param["address"]
@@ -326,6 +333,7 @@ async def tcp_text(cmd_param: str) -> str:
 
     timeout = config.Setup.get("tcp_text_timeout")
     response_wait = config.Setup.get("tcp_text_response_wait")
+    terminator = config.Setup.get("tcp_text_terminator")
 
     port = int(port)
     data = data.strip().strip('"\'')  # Remove spaces and (double) quotes
@@ -335,7 +343,9 @@ async def tcp_text(cmd_param: str) -> str:
 
     try:
         reader, writer = await asyncio.open_connection(host, port)
-        writer.write((data + "\n").encode("utf-8"))
+        if terminator != "None":
+            data = data + terminator
+        writer.write((data).encode("utf-8"))
         await writer.drain()
 
         received = ""

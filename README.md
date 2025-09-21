@@ -86,7 +86,7 @@ Additionally you can configure custom entities that can include simple commands 
 
 ### 1 - Wake-on-lan
 
-Enter the desired hostname, mac or ip address (ipv4/v6). Multiple addresses can be separated by a comma.
+Enter the desired mac, ip address (ipv4/v6) or hostname. Multiple addresses can be separated by a comma. Mac addresses can be written with colons (:), hyphens (-), dots (.) or no separators
 
 *Note: When running as a custom integration on the remote itself only mac addresses are supported.*
 
@@ -229,7 +229,7 @@ Entity1:
 
 #### Limitations / Disclaimer
 
-*⚠️ This requires firmware version 1.9.2 or newer (installing firmware versions above 1.7.14 for Remote Two currently need beta updates to be enabled).*
+*⚠️ This requires firmware version 2.6.9 or newer (installing firmware versions above 1.7.14 for Remote Two currently need beta updates to be enabled).*
 
 ##### Missing firmware features
 
@@ -247,19 +247,19 @@ Download the uc-intg-requests-x.x.x-aarch64.tar.gz archive in the assets section
 
 ##### Upload in Web Configurator
 
-Since firmware version 2.2.0 you can upload custom integrations in the web configurator. Go to *Integrations* in the top menu, on the top right click on *Add new/Install custom_ and choose the downloaded tar.gz file.
+Since firmware version 2.2.0 you can upload custom integrations in the web configurator. Go to *Integrations* in the top menu, on the top right click on *Add new/Install custom* and choose the downloaded tar.gz file. Make sure not *not* unpack the file before uploading. Some operating systems may also hide well known file extensions by default which can be disabled.
 
 ##### Alternative - Upload via Core API or 3rd party tools
 
 ```shell
 curl --location 'http://$IP/api/intg/install' \
 --user 'web-configurator:$PIN' \
---form 'file=@"uc-intg-sonysdcp-$VERSION-aarch64.tar.gz"'
+--form 'file=@"uc-intg-requests-$VERSION-aarch64.tar.gz"'
 ```
 
 There is also a Core API GUI available at https://*Remote-IP*/doc/core-rest. Click on Authorize to log in (username: web-configurator, password: your PIN), scroll down to POST intg/install, click on Try it out, choose a file and then click on Execute.
 
-Alternatively you can also use the inofficial [UC Remote Toolkit](https://github.com/albaintor/UC-Remote-Two-Toolkit)
+Alternatively you can also use the unofficial [UC Remote Toolkit](https://github.com/albaintor/UC-Remote-Two-Toolkit)
 
 ### Run on a separate device as an external integration driver
 
@@ -289,7 +289,7 @@ in the Python integration library.
 All data is mounted to `/usr/src/app`:
 
 ```shell
-docker run --net=host -n 'ucr2-integration-requests' -v './ucr2-integration-requests':'/usr/src/app/':'rw' 'python:3.11' /usr/src/app/docker-entry.sh
+docker run --net=host -n 'ucr-integration-requests' -v './ucr-integration-requests':'/usr/src/app/':'rw' 'python:3.11' /usr/src/app/docker-entry.sh
 ```
 
 ## Build
@@ -326,11 +326,11 @@ docker run --rm --name builder \
     --platform=aarch64 \
     --user=$(id -u):$(id -g) \
     -v "$PWD":/workspace \
-    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6-0.2.0  \
+    docker.io/unfoldedcircle/r2-pyinstaller:3.11.13-0.4.0  \
     bash -c \
       "cd /workspace && \
       python -m pip install -r requirements.txt && \
-      pyinstaller --clean --onedir --name int-requests intg-requests/driver.py"
+      pyinstaller --clean --onedir --name intg-requests --collect-all zeroconf intg-requests/driver.py"
 ```
 
 #### aarch64 Linux / Mac
@@ -341,22 +341,23 @@ On an aarch64 host platform, the build image can be run directly (and much faste
 docker run --rm --name builder \
     --user=$(id -u):$(id -g) \
     -v "$PWD":/workspace \
-    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6-0.2.0  \
+    docker.io/unfoldedcircle/r2-pyinstaller:3.11.13-0.4.0  \
     bash -c \
       "cd /workspace && \
       python -m pip install -r requirements.txt && \
-      pyinstaller --clean --onedir --name intg-requests intg-requests/driver.py"
+      pyinstaller --clean --onedir --name intg-requests --collect-all zeroconf intg-requests/driver.py"
 ```
 
 ### Create tar.gz archive
 
-Now we need to create the tar.gz archive that can be installed on the remote and contains the driver.json metadata file and the driver distribution binary inside the bin directory
+Now we need to create the tar.gz archive that can be installed on the remote and contains the driver.json metadata file and the driver distribution binary inside the bin directory and the custom entities config in the config directory.
 
 ```shell
-mkdir -p artifacts/bin
+mkdir -p artifacts/bin artifacts/config
 mv dist/intg-requests/* artifacts/bin
 mv artifacts/bin/intg-requests artifacts/bin/driver
 cp driver.json artifacts/
+cp custom_entities.yaml artifacts/config
 tar czvf uc-intg-requests-aarch64.tar.gz -C artifacts .
 rm -r dist build artifacts intg-requests.spec
 ```

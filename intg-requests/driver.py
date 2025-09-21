@@ -7,7 +7,6 @@ import sys
 import asyncio
 import logging
 from typing import Any
-import shutil
 
 import ucapi
 
@@ -249,23 +248,6 @@ async def main():
         cfg_path = os.environ["UC_CONFIG_HOME"] + "/" + config.Setup.get("cfg_path")
         config.Setup.set("cfg_path", cfg_path)
         _LOG.info("The configuration is stored in " + cfg_path)
-
-        # https://github.com/unfoldedcircle/core-api/blob/main/doc/integration-driver/driver-installation.md#installation-archive-example
-        # https://discord.com/channels/553671366411288576/970313654190887011/1406363994121441380
-        #BUG Files in ./config and ./data folder in custom integration archives doesn't get copied to the internal folders during installation.
-        # Putting it in ./bin works but that folder is read only
-        #WORKAROUND: When the yaml config doesn't exist in UC_CONFIG_HOME copy file from ./bin to a new file in ./config during runtime in driver.py
-        #TODO Create GitHub issue with an example custom integration
-        if not os.path.isfile(os.environ["UC_CONFIG_HOME"] + "/" + config.Setup.get("yaml_path")):
-            _LOG.debug("Copying custom entities yaml file from ./bin to to UC_CONFIG_HOME")
-            source = config.Setup.get("yaml_path")
-            target = os.environ["UC_CONFIG_HOME"] + "/" + config.Setup.get("yaml_path")
-            try:
-                shutil.copyfile(source, target)
-            except Exception as e:
-                _LOG.critical("Error while copying custom entities yaml file: " + str(e))
-                _LOG.critical("Stopping integration driver")
-                raise SystemExit(0) from e
 
         yaml_path = os.environ["UC_CONFIG_HOME"] + "/" + config.Setup.get("yaml_path")
         config.Setup.set("yaml_path", yaml_path)
