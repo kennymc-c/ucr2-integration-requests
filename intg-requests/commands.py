@@ -316,7 +316,6 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
 
 
 
-#TODO Add bytes over TCP command that can be used to send binary data
 async def tcp_text(cmd_param: str) -> str:
     """Send a text over TCP command to the passed address and return the status code."""
 
@@ -337,15 +336,23 @@ async def tcp_text(cmd_param: str) -> str:
 
     port = int(port)
     data = data.strip().strip('"\'')  # Remove spaces and (double) quotes
-    data = tcp_text_process_control_data(data)
 
     writer = None
 
     try:
         reader, writer = await asyncio.open_connection(host, port)
-        if terminator != "None":
-            data = data + terminator
-        writer.write((data).encode("utf-8"))
+        if data.startswith("raw="):
+            raw_data = data[4:].replace(" ", "").replace("0x", "")
+            try:
+                writer.write(bytes.fromhex(raw_data))
+            except ValueError:
+                _LOG.error("Invalid hex format in raw data: " + raw_data)
+                return ucapi.StatusCodes.BAD_REQUEST
+        else:
+            data = tcp_text_process_control_data(data)
+            if terminator != "None":
+                data = data + terminator
+            writer.write((data).encode("utf-8"))
         await writer.drain()
 
         received = ""

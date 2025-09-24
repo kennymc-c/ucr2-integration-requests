@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.4] - 2025-09-24
+
+### Added
+
+- Text over TCP: Added support for sending raw binary data without utf-8 encoding. Binary data has to be written as hex bytes (`0x00`), words (`0x0000`), double words or longer values (e.g. `192.168.1.1:1234, "raw=0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"`). The `0x` prefix is optional.
+
 ## [0.8.3] - 2025-09-21
 
 ### Added
