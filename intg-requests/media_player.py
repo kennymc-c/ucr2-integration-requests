@@ -36,13 +36,15 @@ def update_rq_media_widget(entity_id:str, response: str):
 async def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None):
     """Run a requests, wol or text over tcp command depending on the passed entity id and parameter"""
 
-    try:
-        cmd_param = params["source"]
-    except KeyError:
-        _LOG.error("Source parameter empty")
-        return ucapi.StatusCodes.BAD_REQUEST
-
-
+    if params:
+        try:
+            cmd_param = params["source"]
+            if cmd_param is None or cmd_param == "":
+                _LOG.error("Source parameter is empty")
+                return ucapi.StatusCodes.BAD_REQUEST
+        except KeyError:
+            _LOG.error("Source parameter is empty")
+            return ucapi.StatusCodes.BAD_REQUEST
 
     if entity_id in config.Setup.rq_ids:
         if cmd_name == ucapi.media_player.Commands.SELECT_SOURCE:

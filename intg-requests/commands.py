@@ -180,7 +180,7 @@ def update_response(method:str, response: str):
 
 
 def http_request(method: str, cmd_param: str=None | dict) -> int:
-    """Send a requests command to the passed url with the passed data and return the status code"""
+    """Send a http requests command to the passed url with the passed data and return the status code"""
 
     rq_ssl_verify = config.Setup.get("rq_ssl_verify")
     rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")

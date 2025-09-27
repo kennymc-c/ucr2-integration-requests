@@ -220,7 +220,7 @@ def substitute_yaml_vars(obj, variables):
     pattern = re.compile(r"\${([^}]+)}")
 
     if isinstance(obj, str):
-        return pattern.sub(lambda m: variables.get(m.group(1), m.group(0)), obj)
+        return pattern.sub(lambda m: str(variables.get(m.group(1), m.group(0))), obj)
     elif isinstance(obj, list):
         return [substitute_yaml_vars(i, variables) for i in obj]
     elif isinstance(obj, dict):
@@ -319,6 +319,7 @@ class Setup:
                     raw = safe_load(f)
                 # Read and remove variable block if it exists when loading as a dict
                 variables = raw.pop("_vars", {})
+                _LOG.debug("Get variables from _vars block in custom entities yaml configuration")
                 return substitute_yaml_vars(raw, variables)
             raise ValueError(key + " can not only be returned as a string")
         if key == "custom_entities":

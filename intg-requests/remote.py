@@ -200,6 +200,18 @@ async def custom_remote_cmd_handler(entity: ucapi.Remote, cmd_id: str, _params: 
     else:
         _LOG.info(f"Received {cmd_id} command with parameter {_params} for entity id {entity.id}")
 
+    if _params:
+        try:
+            command = _params.get("command")
+            if command is None or command == "":
+                _LOG.error("Command parameter is empty")
+                return ucapi.StatusCodes.BAD_REQUEST
+        except KeyError:
+            sequence = _params.get("sequence")
+            if sequence is None or sequence == "":
+                _LOG.error("Sequence parameter is empty")
+                return ucapi.StatusCodes.BAD_REQUEST
+
     custom_entities = config.Setup.get("custom_entities", python_dict=True)
     id_prefix = config.Setup.get("custom_entities_prefix")
 
