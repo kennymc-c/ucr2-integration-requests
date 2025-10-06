@@ -1,5 +1,5 @@
 {
-  "driver_id": "requests-test",
+  "driver_id": "requests",
   "version": "0.8.6",
   "release_date": "2025-10-06",
   "min_core_api": "0.24.3",
