@@ -358,7 +358,6 @@ async def tcp_text(cmd_param: str) -> str:
     port = int(port)
     data = data.strip().strip('"\'')  # Remove spaces and (double) quotes
 
-    _LOG.debug(config.Setup.get("tcp_text_timeout"))
     _LOG.debug("address: " + address + ", text: " + repr(data) + ", timeout: " + str(timeout) + ", response_wait: " + str(response_wait) + ", terminator: " + repr(terminator))
     if timeout != config.Setup.get("tcp_text_timeout"):
         _LOG.debug("Command specific timeout of " +  str(timeout) + " seconds defined")
