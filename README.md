@@ -136,15 +136,16 @@ The output can be parsed to only show a specific part of the response message us
 
 ### 3 - Text over TCP
 
-This method can be used with some home automation systems, tools like [win-remote-control](https://github.com/moefh/win-remote-control) or for certain protocols like [PJLink](https://pjlink.jbmia.or.jp/english/index.htmlPJLink) (used by a lot of projector brands like JVC, Epson or Optoma)
+This method can be used with some home automation systems, tools like [win-remote-control](https://github.com/moefh/win-remote-control) or for certain protocols like [PJLink](https://pjlink.jbmia.or.jp/english/index.htmlPJLink) (used by a lot of projector brands like JVC, Epson or Optoma). It's possible to define a command specific timeout that overrides the global text over tcp timeout.
 
 - Generic Example: `192.168.1.1:1234, "Hello World"`
 - PJLink Power On Example: `192.168.1.1:4352, "%1POWR 1\r"`
   - Other PJLink commands can be found in the [PJLink command descriptions](https://pjlink.jbmia.or.jp/english/data_cl2/PJLink_5-1.pdf) (from page 17)
+- Command specific timeout: `address=192.168.1.1.1:12345, text="Hello World", timeout=5`
 
 #### Wait for a response message
 
-By default the integration waits for a response message from the server/device and raises a timeout error if no response has been received in the configured time frame. You can change this behavior in the advanced settings if your device is not sending any response message.
+By default the integration waits for a response message from the server/device and raises a timeout error if no response has been received in the configured time frame. You can change this behavior in the advanced settings if your device is not sending any response message. The connection is then closed immediately after sending the message.
 
 #### Control characters
 
@@ -157,7 +158,7 @@ C++ and hex style control characters are supported to e.g. add a new line (`\n` 
 
 #### Sending Raw data
 
-By adding `raw=` at the beginning of your message you can send raw binary data instead of utf-8 encoded text. Binary data has to be written as hex bytes (`0x00`), words (`0x0000`), double words or longer values (e.g. `192.168.1.1:1234, "raw=0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"`). The `0x` prefix is optional.
+By adding `raw=` at the beginning of your message you can send raw binary data instead of utf-8 encoded text. Binary data has to be written as hex bytes (`0x00`), words (`0x0000`), double words or longer values (e.g. `192.168.1.1:1234, "raw=0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"`). The `0x` prefix is optional. The configured command terminator is ignored in this case.
 
 ### 4 - Custom Entities
 
@@ -208,7 +209,8 @@ Entity1:
       Type: tcp-text
       Parameter:
         address: 192.168.1.101:12345
-        text: menu\r
+        text: raw=0xDF 0xAD 0xBE 0xEF 0x00 0xFF
+        timeout: 7
 ```
 
 #### Using variables

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.6] - 2025-10-06
+
+### Fixed
+
+- Text over TCP: Fixed decoding in log messages if binary data is returned
+
+## Added
+
+- Text over TCP: Added a command specific timeout parameter which overrides the global text over tcp timeout: `address=192.168.1.1.1:12345, text="Hello World", timeout=5`)
+
 ## [0.8.5] - 2025-09-27
 
 ### Fixed

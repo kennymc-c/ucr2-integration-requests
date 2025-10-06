@@ -26,4 +26,5 @@ Entity1:
       Type: tcp-text
       Parameter:
         address: 192.168.1.101:12345
-        text: menu\r
+        text: raw=0xDF 0xAD 0xBE 0xEF 0x00 0xFF
+        timeout: 7

@@ -6,6 +6,7 @@ import asyncio
 import logging
 import ast
 import shlex
+import string
 
 from re import sub, search, fullmatch, IGNORECASE
 from ipaddress import ip_address, IPv4Address, IPv6Address, AddressValueError
@@ -316,29 +317,53 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
 
 
 
+def is_printable(s):
+    """Check if all characters in the string are printable"""
+    return all(c in string.printable for c in s)
+
+
+
 async def tcp_text(cmd_param: str) -> str:
     """Send a text over TCP command to the passed address and return the status code."""
 
     #TODO Add an expected ok response message parameter that can be used to check if the server response is correct or an error occurred
     #TODO Add a response sensor like for http requests to show the last received response message
 
-    if isinstance(cmd_param, dict): # Check if cmd_param is already a dict when coming from a custom entity config
-        address = cmd_param["address"]
-        data = cmd_param["text"]
-    else:
-        address, data = cmd_param.split(",", 1)  # Split only at the 1st comma
-
-    host, port = address.split(":")
-
     timeout = config.Setup.get("tcp_text_timeout")
     response_wait = config.Setup.get("tcp_text_response_wait")
     terminator = config.Setup.get("tcp_text_terminator")
 
+    if isinstance(cmd_param, dict): # Check if cmd_param is already a dict when coming from a custom entity config
+        address = cmd_param["address"]
+        data = cmd_param["text"]
+        timeout = cmd_param.get("timeout", config.Setup.get("tcp_text_timeout"))
+    else:
+        params = {}
+        for part in cmd_param.split(","):
+            part = part.strip()
+            if "=" in part:
+                key, value = part.split("=", 1)
+                params[key.strip()] = value.strip().strip('"\'')
+        address = params.get("address")
+        data = params.get("text", "")
+        if "timeout" in params:
+            try:
+                timeout = int(params["timeout"])
+            except ValueError:
+                _LOG.error("Timeout parameter is not a valid integer: " + params["timeout"])
+    if not address:
+        address, data = cmd_param.split(",", 1)  # Split only at the 1st comma
+
+    host, port = address.split(":")
     port = int(port)
     data = data.strip().strip('"\'')  # Remove spaces and (double) quotes
 
-    writer = None
+    _LOG.debug(config.Setup.get("tcp_text_timeout"))
+    _LOG.debug("address: " + address + ", text: " + repr(data) + ", timeout: " + str(timeout) + ", response_wait: " + str(response_wait) + ", terminator: " + repr(terminator))
+    if timeout != config.Setup.get("tcp_text_timeout"):
+        _LOG.debug("Command specific timeout of " +  str(timeout) + " seconds defined")
 
+    writer = None
     try:
         reader, writer = await asyncio.open_connection(host, port)
         if data.startswith("raw="):
@@ -351,15 +376,20 @@ async def tcp_text(cmd_param: str) -> str:
         else:
             data = tcp_text_process_control_data(data)
             if terminator != "None":
+                _LOG.debug("Append command terminator " + repr(terminator) + " to the sent data")
                 data = data + terminator
             writer.write((data).encode("utf-8"))
         await writer.drain()
 
-        received = ""
+        received_message = ""
+        binary_message = ""
         if response_wait:
             try:
-                received = await asyncio.wait_for(reader.read(1024), timeout)
-                received = received.decode("utf-8")
+                received_data = await asyncio.wait_for(reader.read(1024), timeout)
+                try:
+                    received_message = received_data.decode("utf-8")
+                except UnicodeDecodeError:
+                    binary_message = received_data.hex(" ")
             except asyncio.TimeoutError:
                 _LOG.warning("Timeout while waiting for a response message from the server")
                 return ucapi.StatusCodes.TIMEOUT
@@ -380,8 +410,14 @@ async def tcp_text(cmd_param: str) -> str:
             _LOG.error("The server could not be reached or the connection was rejected")
 
     _LOG.info("Sent raw text " + repr(format(data)) + " over TCP to " + address)
-    if received != "":
-        _LOG.info("Received data: " + format(received))
+
+    if received_message != "" or binary_message != "":
+        if is_printable(received_message) and received_message.strip():
+            processed_message = received_message.replace("\r", "\n")
+            _LOG.info("Received text response: " + processed_message)
+        else:
+            _LOG.info("Received binary response: " + binary_message)
+
     return ucapi.StatusCodes.OK
 
 
