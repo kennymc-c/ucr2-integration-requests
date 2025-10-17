@@ -191,9 +191,11 @@ def http_request(method: str, cmd_param: str=None | dict) -> int:
     params = {}
 
     if isinstance(cmd_param, dict): #Check if cmd_param is already a dict when coming from a custom entity config with multiple parameters
-        url = cmd_param["url"]
-        del cmd_param["url"]
-        params = cmd_param
+        params = dict(cmd_param)
+        url = params.pop("url", None)
+        if not url:
+            _LOG.error("No url parameter found")
+            return ucapi.StatusCodes.BAD_REQUEST
     else:
         if cmd_param.startswith(("http://", "https://")):
             url = cmd_param

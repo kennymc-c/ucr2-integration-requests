@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.7] - 2025-10-17
+
+### Fixes
+
+- Custom Entities/HTTP Requests: Fixed a bug which deleted the url parameter of a remote entity http request command with repeat > 1 after the first round
+  - Solves #8
+
+### Changed
+
+- If no custom entities (example) config can be found at startup the driver will be stopped just liked when no general configuration file can be found after the first time setup
+
 ## [0.8.6] - 2025-10-06
 
 ### Fixed

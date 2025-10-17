@@ -505,4 +505,4 @@ The Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
             except Exception as e:
                 raise OSError(f"Error while reading {yaml_path}") from e
         else:
-            _LOG.error(f"{yaml_path} does not exist. Custom entities could not be loaded.")
+            raise OSError(f"{yaml_path} does not exist. Custom entities could not be loaded.")
