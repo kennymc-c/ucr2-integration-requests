@@ -11,68 +11,68 @@
     PYTHON_VER: 3.11.13-0.4.0
   
   jobs:
-  build:
-    name: Build Release
-    runs-on: ubuntu-latest
-    #Save version to env output variable to be able to use it in the following release job as a tag
-    outputs:
-      version: ${{ steps.get-version-and-id.outputs.VERSION }}
-      driver_id: ${{ steps.get-version-and-id.outputs.DRIVER_ID }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          # History of 200 should be more than enough to calculate commit count since last release tag
-          fetch-depth: 200
+    build:
+      name: Build Release
+      runs-on: ubuntu-latest
+      #Save version to env output variable to be able to use it in the following release job as a tag
+      outputs:
+        version: ${{ steps.get-version-and-id.outputs.VERSION }}
+        driver_id: ${{ steps.get-version-and-id.outputs.DRIVER_ID }}
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v6
+          with:
+            # History of 200 should be more than enough to calculate commit count since last release tag
+            fetch-depth: 200
 
-      - name: Get version and id
-        #Id needed for env output variable
-        id: get-version-and-id
-        run: |
-          echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
-          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
-          # Save to Github output to later use it in Create Release job
-          echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
-          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
+        - name: Get version and id
+          #Id needed for env output variable
+          id: get-version-and-id
+          run: |
+            echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
+            echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
+            # Save to Github output to later use it in Create Release job
+            echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
+            echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
 
-      - name: Build
-        run: |
-          sudo apt-get update && sudo apt-get install -y qemu-system-arm binfmt-support qemu-user-static
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-          echo "Starting pyinstaller build"
-          docker run --rm --name builder \
-            --platform=aarch64 \
-            --user=$(id -u):$(id -g) \
-            -v ${GITHUB_WORKSPACE}:/workspace \
-            docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
-            bash -c \
-            "cd /workspace && \
-              python -m pip install -r requirements.txt && \
-              pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all zeroconf intg-${INTG_NAME}/driver.py"
+        - name: Build
+          run: |
+            sudo apt-get update && sudo apt-get install -y qemu-system-arm binfmt-support qemu-user-static
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+            echo "Starting pyinstaller build"
+            docker run --rm --name builder \
+              --platform=aarch64 \
+              --user=$(id -u):$(id -g) \
+              -v ${GITHUB_WORKSPACE}:/workspace \
+              docker.io/unfoldedcircle/r2-pyinstaller:${PYTHON_VER} \
+              bash -c \
+              "cd /workspace && \
+                python -m pip install -r requirements.txt && \
+                pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all zeroconf intg-${INTG_NAME}/driver.py"
 
-      - name: Prepare artifacts
-        shell: bash
-        run: |
-          mkdir -p artifacts/bin artifacts/config
-          mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
-          mv artifacts/bin/intg-${{ env.DRIVER_ID }} artifacts/bin/driver
-          cp driver.json artifacts/
-          cp custom_entities.yaml artifacts/config
-          echo "ARTIFACT_NAME=uc-intg-${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
-          
-      - name: Create upload artifact archive
-        shell: bash
-        run: | 
-          tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
-          ls -lah
-          
-      - uses: actions/upload-artifact@v6
-        id: upload_artifact
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_NAME }}.tar.gz
-          if-no-files-found: error
-          retention-days: 3
+        - name: Prepare artifacts
+          shell: bash
+          run: |
+            mkdir -p artifacts/bin artifacts/config
+            mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
+            mv artifacts/bin/intg-${{ env.DRIVER_ID }} artifacts/bin/driver
+            cp driver.json artifacts/
+            cp custom_entities.yaml artifacts/config
+            echo "ARTIFACT_NAME=uc-intg-${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
+            
+        - name: Create upload artifact archive
+          shell: bash
+          run: | 
+            tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
+            ls -lah
+            
+        - uses: actions/upload-artifact@v6
+          id: upload_artifact
+          with:
+            name: ${{ env.ARTIFACT_NAME }}
+            path: ${{ env.ARTIFACT_NAME }}.tar.gz
+            if-no-files-found: error
+            retention-days: 3
             
   release:
     name: Create Release
