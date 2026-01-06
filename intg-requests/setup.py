@@ -134,7 +134,7 @@ async def show_advanced_setup(msg: ucapi.UserDataResponse) -> ucapi.RequestUserI
     """
     Start driver setup.
 
-    Initiated by Remote Two to set up the driver.
+    Initiated by the Remote to set up the driver.
 
     :param msg: value(s) of input fields in the first setup screen.
     :return: the setup action on how to continue

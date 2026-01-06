@@ -145,7 +145,7 @@ This method can be used with some home automation systems, tools like [win-remot
 
 #### Wait for a response message
 
-By default the integration waits for a response message from the server/device and raises a timeout error if no response has been received in the configured time frame. You can change this behavior in the advanced settings if your device is not sending any response message. The connection is then closed immediately after sending the message.
+By default the integration waits for a response message from the server/device and raises a timeout error if no response has been received in the configured time frame. You can change this behavior in the advanced settings if your device is not sending any response message. The connection is then closed immediately after sending the message. It's also possible to decide individually for each command whether the integration should wait for a response and ignore the global setting by adding `response_wait=false` or `response_wait=true` command parameter.
 
 #### Control characters
 

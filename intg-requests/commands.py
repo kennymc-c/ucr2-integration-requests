@@ -266,6 +266,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
         if not rq_ssl_verify:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+    _LOG.debug("Sending http request:")
     _LOG.debug("method: " + method + ", fire_and_forget: " + str(rq_fire_and_forget) + ", url: " + url + ", params: " + str(params))
 
     try:
@@ -353,6 +354,14 @@ async def tcp_text(cmd_param: str) -> str:
                 timeout = int(params["timeout"])
             except ValueError:
                 _LOG.error("Timeout parameter is not a valid integer: " + params["timeout"])
+        if "response_wait" in params:
+            response_wait_str = params["response_wait"].lower()
+            if response_wait_str == "true":
+                response_wait = True
+            elif response_wait_str == "false":
+                response_wait = False
+            else:
+                _LOG.error("response_wait parameter is not a valid boolean: " + params["response_wait"])
     if not address:
         address, data = cmd_param.split(",", 1)  # Split only at the 1st comma
 

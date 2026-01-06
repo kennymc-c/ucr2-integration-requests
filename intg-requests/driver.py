@@ -17,7 +17,7 @@ import setup
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 
-loop = asyncio.get_event_loop()
+loop = asyncio.get_event_loop() #TODO Change to new_event_loop() when using Python 3.12+
 api = ucapi.IntegrationAPI(loop)
 
 
@@ -130,39 +130,64 @@ async def add_custom_entities(custom_entities: dict[str, Any]) -> None:
 
 
 @api.listens_to(ucapi.Events.CONNECT)
-async def on_r2_connect() -> None:
+async def on_intg_connect() -> None:
     """
-    Connect notification from Remote Two.
+    Connect notification from Remote.
 
     Just reply with connected as there is no permanent connection to a device that needs to be re-established
     """
     _LOG.info("Received connect event message from remote")
+
     await api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 
 
 @api.listens_to(ucapi.Events.DISCONNECT)
-async def on_r2_disconnect() -> None:
+async def on_intg_disconnect() -> None:
     """
-    Disconnect notification from the remote Two.
+    Disconnect notification from the Remote.
 
     Just reply with disconnected as there is no permanent connection to a device that needs to be closed
     """
     _LOG.info("Received disconnect event message from remote")
+
     await api.set_device_state(ucapi.DeviceStates.DISCONNECTED)
+
+
+
+@api.listens_to(ucapi.Events.CLIENT_CONNECTED)
+async def on_client_connect() -> None:
+    """
+    Websocket client connect notification from Remote.
+    """
+    _LOG.debug("Remote websocket client connected to this integration websockets server")
+    _LOG.debug("There are currently %d websocket clients connected to this integration websockets server", int(api.client_count))
+
+
+
+@api.listens_to(ucapi.Events.CLIENT_DISCONNECTED)
+async def on_client_disconnect() -> None:
+    """
+    Websocket client disconnect notification from the Remote.
+    """
+    _LOG.debug("Remote websocket client disconnected from this integration websockets server")
+    client_count = int(api.client_count)
+    if client_count > 0:
+        _LOG.debug("There are currently %d websocket clients connected to this integration websockets server", client_count)
+    else:
+        _LOG.debug("No other websocket clients are currently connected to this integration websockets server")
 
 
 
 @api.listens_to(ucapi.Events.ENTER_STANDBY)
 async def on_r2_enter_standby() -> None:
     """
-    Enter standby notification from Remote Two.
+    Enter standby notification from Remote.
 
-    Set config.R2_IN_STANDBY to True and show a debug log message as there is no permanent connection to a device that needs to be closed.
+    Set standby to True and show a debug log message as there is no permanent connection to a device that needs to be closed.
     """
     _LOG.info("Received enter standby event message from remote")
 
-    _LOG.debug("Set config.R2_IN_STANDBY to True")
     config.Setup.set("standby", True)
 
 
@@ -170,13 +195,12 @@ async def on_r2_enter_standby() -> None:
 @api.listens_to(ucapi.Events.EXIT_STANDBY)
 async def on_r2_exit_standby() -> None:
     """
-    Exit standby notification from Remote Two.
+    Exit standby notification from Remote.
 
-    Just show a debug log message as there is no permanent connection to a device that needs to be re-established.
+    Set standby to False and just show a debug log message as there is no permanent connection to a device that needs to be re-established.
     """
     _LOG.info("Received exit standby event message from remote")
 
-    _LOG.debug("Set config.R2_IN_STANDBY to False")
     config.Setup.set("standby", False)
 
 

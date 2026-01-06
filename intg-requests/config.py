@@ -234,6 +234,9 @@ class Setup:
     which includes storing them in a json config file and as well as load() them from this file"""
 
     _custom_entities = {}
+    # Cache for parsed custom entities to avoid repeated safe_load calls
+    _custom_entities_cache = None
+    _custom_entities_cache_mtime = 0
 
     __conf = {
         "standby": False,
@@ -315,12 +318,34 @@ class Setup:
         if python_dict:
             if key == "custom_entities":
                 yaml_path = Setup.__conf["yaml_path"]
-                with open(yaml_path, "r", encoding="utf-8") as f:
-                    raw = safe_load(f)
-                # Read and remove variable block if it exists when loading as a dict
-                variables = raw.pop("_vars", {})
-                _LOG.debug("Get variables from _vars block in custom entities yaml configuration")
-                return substitute_yaml_vars(raw, variables)
+                try:
+                    mtime = os.path.getmtime(yaml_path)
+                except Exception:
+                    # Fallback to direct read if stat fails
+                    mtime = None
+
+                # Use cache if file hasn't changed to improve performance
+                if mtime is not None and Setup._custom_entities_cache is not None and Setup._custom_entities_cache_mtime == mtime:
+                    raw = Setup._custom_entities_cache
+                else:
+                    with open(yaml_path, "r", encoding="utf-8") as f:
+                        raw = safe_load(f)
+                    if mtime is not None:
+                        Setup._custom_entities_cache = raw
+                        Setup._custom_entities_cache_mtime = mtime
+
+                # Work on a shallow copy to avoid mutating the cache when popping _vars
+                if isinstance(raw, dict):
+                    raw_copy = raw.copy()
+                    variables = raw_copy.pop("_vars", {})
+                else:
+                    raw_copy = raw
+                    variables = {}
+
+                if variables:
+                    _LOG.debug("Getting variables from _vars block in custom entities yaml configuration")
+
+                return substitute_yaml_vars(raw_copy, variables)
             raise ValueError(key + " can not only be returned as a string")
         if key == "custom_entities":
             yaml_path = Setup.__conf["yaml_path"]
@@ -373,6 +398,12 @@ from the default value of " + str(Setup.__conf[key]))
                                     # Leave the keys order as in the dict with sort_keys=False which is True by default
                                     f.write(dump(value, allow_unicode=True, sort_keys=False))
                                 _LOG.debug("Stored custom entities configurations as YAML string into " + yaml_path)
+                                # Update cache to match the just-written file
+                                try:
+                                    Setup._custom_entities_cache = value
+                                    Setup._custom_entities_cache_mtime = os.path.getmtime(yaml_path)
+                                except Exception:
+                                    pass
                             except Exception as e:
                                 raise Exception("Error while storing custom entities to " + yaml_path + ": " + str(e)) from e
                         else:
@@ -499,6 +530,12 @@ The Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
             try:
                 with open(yaml_path, "r", encoding="utf-8") as f:
                     Setup._custom_entities = safe_load(f)
+                    # Update cache to match loaded data
+                    try:
+                        Setup._custom_entities_cache = Setup._custom_entities
+                        Setup._custom_entities_cache_mtime = os.path.getmtime(yaml_path)
+                    except Exception:
+                        pass
                 if Setup.__conf["custom_entities_set"] is True:
                     #Only show a log message if custom entities have been configured by the user
                     _LOG.info("Loaded custom entities from " + yaml_path + " as Python dict into runtime storage")

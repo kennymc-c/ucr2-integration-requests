@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-01-06
+
+### Fixed
+
+- Improved performance with bigger custom entity configurations
+- Fixed unavailable entity state after pressing and holding a button as reported in [#8](https://github.com/kennymc-c/ucr2-integration-requests/issues/8) due to an updated ucapi library
+
+### Added
+
+- Text over TCP: Added `response_wait` as command parameters to decide individually for each command whether the integration should wait for a response and ignore the global setting. Possible values are `true` and `false`
+- Added debug log messages for websocket connect/disconnect events
+
+### Changed
+
+- Updated GitHub actions in build workflow
+- Updated UC Python library to 0.5.1
+
 ## [0.8.8] - 2025-10-19
 
 ### Fixed

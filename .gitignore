@@ -403,3 +403,5 @@ config.json
 manual-build+upload.sh
 data-over-tcp-receiver.py
 manual-register.sh
+custom_entities_example.yaml
+http_server.py
