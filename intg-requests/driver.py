@@ -13,6 +13,7 @@ import ucapi
 import config
 import media_player
 import remote
+import selects
 import setup
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
@@ -51,8 +52,7 @@ async def add_mp(entity_id: str, entity_name: str):
         entity_id,
         entity_name,
         [
-            ucapi.media_player.Features.SELECT_SOURCE, \
-            ucapi.media_player.Features.MEDIA_TITLE
+            ucapi.media_player.Features.SELECT_SOURCE
         ],
         attributes={ucapi.media_player.Attributes.STATE: ucapi.media_player.States.ON},
         cmd_handler=mp_cmd_handler
@@ -87,20 +87,21 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
 
 async def add_custom_entities(custom_entities: dict[str, Any]) -> None:
     """
-    Adds custom entities using the custom entities configuration.
+    Adds custom remote and optional select entities using the custom entities configuration.
 
     :param custom_entities: dictionary of custom entities
     """
 
+    custom_prefix = config.Setup.get("custom_entities_prefix")
+    select_prefix = config.Setup.get("custom_entities_select_prefix")
+
     for entity_name, entity_config in custom_entities.items():
-        _LOG.info(f"Adding custom entity {entity_name}")
+        _LOG.info(f"Adding custom entity \"{entity_name}\"")
 
         features = []
         attributes = {}
 
-        id_prefix = config.Setup.get("custom_entities_prefix")
-
-        entity_id = f"{id_prefix}{entity_name.lower()}"
+        entity_id = f"{custom_prefix}{entity_name.lower()}"
         features = list(entity_config.get("Features", {}).keys())
         simple_commands = list(entity_config.get("Simple Commands", {}).keys())
 
@@ -115,7 +116,6 @@ async def add_custom_entities(custom_entities: dict[str, Any]) -> None:
             attributes = {ucapi.remote.Attributes.STATE: ucapi.remote.States.UNKNOWN}
 
         #TODO Support for button mappings and ui pages in yaml config
-        #TODO Support for variables in yaml config
         definition = ucapi.Remote(
             identifier=entity_id,
             name=entity_name,
@@ -126,6 +126,27 @@ async def add_custom_entities(custom_entities: dict[str, Any]) -> None:
         )
 
         api.available_entities.add(definition)
+
+        # Add Select entities for each Select entry
+        selects_config = entity_config.get("Selects", {}) or {}
+        for select_name, select_options in selects_config.items():
+            if not isinstance(select_options, list):
+                _LOG.warning(f"Select '{select_name}' in entity '{entity_name}' is not a list, skipping")
+                continue
+
+            select_entity_id = f"{select_prefix}{entity_name.lower()}-{select_name.lower()}"
+
+            _LOG.info(f"Adding select entity \"{select_entity_id}\"")
+
+            select_definition = ucapi.Select(
+                identifier=select_entity_id,
+                name=f"{entity_name} - {select_name}",
+                attributes={ucapi.select.Attributes.STATE: ucapi.select.States.ON},
+                #Other attributes will be updated/set during the subscribe entities event
+                cmd_handler=selects.select_cmd_handler
+            )
+
+            api.available_entities.add(select_definition)
 
 
 
@@ -216,9 +237,39 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
     """
     _LOG.info("Received subscribe entities event for entity ids: " + str(entity_ids))
 
-    #TODO #WAIT Add api.configured_entities.add(definition) when the unsubscribe event is handled by the integration API
-
     config.Setup.set("standby", False)
+
+    if config.Setup.get("custom_entities_set"):
+        custom_entities = config.Setup.get("custom_entities", python_dict=True)
+        select_prefix = config.Setup.get("custom_entities_select_prefix")
+
+        for entity_name, entity_config in custom_entities.items():
+
+            selects_config = entity_config.get("Selects", {}) or {}
+            for select_name, select_options in selects_config.items():
+                if not isinstance(select_options, list):
+                    _LOG.warning(f"Select '{select_name}' in entity '{entity_name}' is not a list, skipping")
+                    continue
+
+                select_entity_id = f"{select_prefix}{entity_name.lower()}-{select_name.lower()}"
+
+                # Only the defined select options are available in the select entity
+                all_options = select_options
+                current_option = select_options[0] if select_options else ""
+
+                _LOG.debug(f"Update options to: {all_options}")
+                _LOG.debug(f"Update current option to: {current_option}")
+
+                attributes={
+                    ucapi.select.Attributes.OPTIONS: all_options,
+                    ucapi.select.Attributes.CURRENT_OPTION: current_option,
+                    ucapi.select.Attributes.STATE: ucapi.select.States.ON
+                }
+
+                #BUG WORKAROUND Always send DeviceStates.CONNECTED when updating select entity attributes
+                await api.set_device_state(ucapi.DeviceStates.CONNECTED)
+                api.available_entities.update_attributes(select_entity_id, attributes)
+
 
 
 #BUG No event when removing an entity as configured entity. Could be a UC Python library or core/web configurator bug.
@@ -250,6 +301,7 @@ def setup_logger():
     logging.getLogger("commands").setLevel(level)
     logging.getLogger("media_player").setLevel(level)
     logging.getLogger("remote").setLevel(level)
+    logging.getLogger("selects").setLevel(level)
     logging.getLogger("sensor").setLevel(level)
     logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
@@ -257,14 +309,45 @@ def setup_logger():
 
 
 
+class JournaldFormatter(logging.Formatter):
+    """Formatter for journald. Prefixes messages with priority level."""
+
+    def format(self, record):
+        """Format the log record with journald priority prefix."""
+        # mapping of logging levels to journald priority levels
+        # https://www.freedesktop.org/software/systemd/man/latest/sd-daemon.html#syslog-compatible-log-levels
+        # Note: DEBUG app messages are logged with priority 6 (info) and INFO with priority 5 (notice)
+        # This is a workaround until the log subsystem on the Remote is updated to support debug levels.
+        priority = {
+            logging.DEBUG: "<6>", # SD_INFO
+            logging.INFO: "<5>", # SD_NOTICE
+            logging.WARNING: "<4>",
+            logging.ERROR: "<3>",
+            logging.CRITICAL: "<2>",
+        }.get(record.levelno, "<6>")
+        return f"{priority}{record.name:<14s} | {record.getMessage()}"
+
+
+
 async def main():
     """Main function that gets logging from all sub modules and starts the driver"""
 
+    if os.getenv("INVOCATION_ID"):
+        # when running under systemd: timestamps are added by the journal
+        # and we use a custom formatter for journald priority levels
+        handler = logging.StreamHandler()
+        handler.setFormatter(JournaldFormatter())
+        logging.basicConfig(handlers=[handler])
+    else:
+        logging.basicConfig(
+            format="%(asctime)s.%(msecs)03d | %(levelname)-8s | %(name)-14s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+
+    setup_logger()
+
     #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format and config file path
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-
-        logging.basicConfig(format="%(name)-14s %(levelname)-8s %(message)s")
-        setup_logger()
 
         _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
         config.Setup.set("bundle_mode", True)
@@ -276,10 +359,6 @@ async def main():
         yaml_path = os.environ["UC_CONFIG_HOME"] + "/" + config.Setup.get("yaml_path")
         config.Setup.set("yaml_path", yaml_path)
         _LOG.info("The custom entities yaml configuration is stored in " + yaml_path)
-
-    else:
-        logging.basicConfig(format="%(asctime)s.%(msecs)03d | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-        setup_logger()
 
     await setup.init()
     await startcheck()

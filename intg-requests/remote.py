@@ -56,7 +56,7 @@ async def send_command(entity_id: str, entity_config: dict[str, Any], command: s
     """Send a command depending on the command type from the custom entities configuration"""
 
     features = entity_config.get("Features").keys()
-    simple_commands =  entity_config.get("Simple Commands").keys()
+    simple_commands = entity_config.get("Simple Commands").keys()
 
     # Entity feature names that are used in the configuration have a capital first letter while entity command names are all lower case
     features = [f.lower() for f in features]

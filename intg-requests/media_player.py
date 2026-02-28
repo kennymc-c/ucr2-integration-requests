@@ -8,28 +8,9 @@ from typing import Any
 
 import ucapi
 import config
-import driver
 import commands
 
 _LOG = logging.getLogger(__name__)
-
-
-
-def update_rq_media_widget(entity_id:str, response: str):
-    """Update the response in the media player widget"""
-
-    if driver.api.configured_entities.get(entity_id) is None:
-        _LOG.info(f"Entity {entity_id} not found in configured entities. Skip updating attributes")
-        return True
-
-    attributes_to_send = {ucapi.media_player.Attributes.MEDIA_TITLE: response}
-
-    try:
-        driver.api.configured_entities.update_attributes(entity_id, attributes_to_send)
-    except Exception as e:
-        raise Exception("Error while updating attributes for entity id " + entity_id) from e
-
-    _LOG.info("Updated entity attribute(s) " + str(attributes_to_send) + " for " + entity_id)
 
 
 

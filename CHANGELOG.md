@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-02-28
+
+### ⚠️ Breaking
+
+- Removed http response from media player media_title attribute as sensors can be added to activities since firmware 2.7.2. Please use the http response sensor instead
+
+### Added
+
+- Added a `Selects` configuration option for custom entities to create select entities with different simple commands from that entity ([#11](https://github.com/kennymc-c/ucr2-integration-requests/issues/11))
+  - Examples are included in the updated default configuration file
+  - This requires firmware 2.8.3 or newer to support select entities
+- Added a text over TCP response sensor including the same regular expression settings as the existing http response sensor
+
+### Fixed
+
+- Fixed a missing custom entity configuration validation error when only on or off was used as a feature. They always have to be used together and not separately
+  - This resulted in entities being defined with an invalid feature flag and therefore not showing any on or off command in the commands list
+- Fixed an issue with new, updated and removed custom entity commands not updated in the entity definition without a restart and removing/re-adding the entity
+- Removed line breaks and tabs from response sensor values to show more text
+
+### Changed
+
+- Improved log level filters when running under systemd like on the remote
+- Updated UC r2-pyinstaller image in build workflow to 3.11.13-0.5.0
+- Updated ucapi Python library to 0.5.2
+- Updated upload/download build actions
+
 ## [0.9.0] - 2026-01-06
 
 ### Fixed

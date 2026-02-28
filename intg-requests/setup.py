@@ -35,13 +35,21 @@ async def add_all_entities():
         except ValueError as v:
             _LOG.error(v)
 
-        if driver.api.available_entities.contains(id):
-            _LOG.debug("Entity with id " + entity_id + " is already in storage as available entity")
+        if driver.api.available_entities.contains(entity_id) or driver.api.configured_entities.contains(entity_id):
+            _LOG.debug("Entity with id " + entity_id + " is already in storage as available or configured entity")
         else:
             #Only works when add_mp is called outside of driver.py. Otherwise an entity is not available api warning is shown after adding all entities
             await driver.add_mp(entity_id, entity_name)
 
-    await sensor.add_rq_sensor(config.Setup.get("id-rq-sensor"), config.Setup.get("name-rq-sensor"))
+    if driver.api.available_entities.contains(config.Setup.get("id-rq-sensor")) or driver.api.configured_entities.contains(config.Setup.get("id-rq-sensor")):
+        _LOG.debug("Entity with id " + config.Setup.get("id-rq-sensor") + " is already in storage as available or configured entity")
+    else:
+        await sensor.add_rq_sensor(config.Setup.get("id-rq-sensor"), config.Setup.get("name-rq-sensor"))
+
+    if driver.api.available_entities.contains(config.Setup.get("id-tcp-text-sensor")) or driver.api.configured_entities.contains(config.Setup.get("id-tcp-text-sensor")):
+        _LOG.debug("Entity with id " + config.Setup.get("id-tcp-text-sensor") + " is already in storage as available or configured entity")
+    else:
+        await sensor.add_tcp_text_sensor(config.Setup.get("id-tcp-text-sensor"), config.Setup.get("name-tcp-text-sensor"))
 
 
 
@@ -102,7 +110,7 @@ async def driver_setup_handler(msg: ucapi.SetupDriver) -> ucapi.SetupAction:
 
 
 
-async def show_setup_action(msg: ucapi.UserDataResponse) -> ucapi.RequestUserInput:
+async def show_setup_action(msg: ucapi.DriverSetupRequest) -> ucapi.RequestUserInput:
     """Show the setup action screen to the user"""
     setup_action_dropdown_items = config.Setup.get("setup_action_dropdown_items")
     config.Setup.set("setup_step", "action")
@@ -130,7 +138,7 @@ async def show_setup_action(msg: ucapi.UserDataResponse) -> ucapi.RequestUserInp
 
 
 
-async def show_advanced_setup(msg: ucapi.UserDataResponse) -> ucapi.RequestUserInput:
+async def show_advanced_setup(msg) -> ucapi.RequestUserInput:
     """
     Start driver setup.
 
@@ -147,22 +155,26 @@ async def show_advanced_setup(msg: ucapi.UserDataResponse) -> ucapi.RequestUserI
         tcp_text_response_wait = config.Setup.get("tcp_text_response_wait")
         tcp_text_terminator = config.Setup.get("tcp_text_terminator")
         tcp_text_terminator_dropdown_items = config.Setup.get("tcp_text_terminator_dropdown_items")
+        tcp_text_response_regex = config.Setup.get("tcp_text_response_regex")
+        tcp_text_response_nomatch_option = config.Setup.get("tcp_text_response_nomatch_option")
+        regex_nomatch_dropdown_items = config.Setup.get("regex_nomatch_dropdown_items")
         rq_timeout = config.Setup.get("rq_timeout")
         rq_ssl_verify = config.Setup.get("rq_ssl_verify")
         rq_fire_and_forget = config.Setup.get("rq_fire_and_forget")
         rq_user_agent = config.Setup.get("rq_user_agent")
         rq_response_regex = config.Setup.get("rq_response_regex")
         rq_response_nomatch_option = config.Setup.get("rq_response_nomatch_option")
-        rq_response_nomatch_dropdown_items = config.Setup.get("rq_response_nomatch_dropdown_items")
     except ValueError as v:
         _LOG.error(v)
 
     #Get the index of the currently stored value from the corresponding dropdown items list to set it as the default value for the dropdown
     index_tcp_text_terminator = next((i for i, d in enumerate(tcp_text_terminator_dropdown_items) if d.get("id") == tcp_text_terminator), 0)
-    index_rq_response_nomatch_option = next((i for i, d in enumerate(rq_response_nomatch_dropdown_items) if d.get("id") == rq_response_nomatch_option), 0)
+    index_tcp_text_response_nomatch_option = next((i for i, d in enumerate(regex_nomatch_dropdown_items) if d.get("id") == tcp_text_response_nomatch_option), 0)
+    index_rq_response_nomatch_option = next((i for i, d in enumerate(regex_nomatch_dropdown_items) if d.get("id") == rq_response_nomatch_option), 0)
 
     _LOG.debug(f"Currently stored - tcp_text_timeout: {str(tcp_text_timeout)}, tcp_text_response_wait: {str(tcp_text_response_wait)}, \
-tcp_text_terminator: {repr(tcp_text_terminator)}, rq_timeout: {str(rq_timeout)}, rq_ssl_verify: {str(rq_ssl_verify)}, rq_fire_and_forget: {str(rq_fire_and_forget)}, \
+tcp_text_terminator: {repr(tcp_text_terminator)}, tcp_text_response_regex: {str(tcp_text_response_regex)}, tcp_text_response_nomatch_option: \
+{str(tcp_text_response_nomatch_option)}, rq_timeout: {str(rq_timeout)}, rq_ssl_verify: {str(rq_ssl_verify)}, rq_fire_and_forget: {str(rq_fire_and_forget)}, \
 rq_user_agent: {str(rq_user_agent)}, rq_response_regex: {str(rq_response_regex)}, \
 rq_response_nomatch_option: {str(rq_response_nomatch_option)}")
 
@@ -223,6 +235,29 @@ rq_response_nomatch_option: {str(rq_response_nomatch_option)}")
                         },
             },
             {
+                "id": "tcp_text_response_regex",
+                "label": {
+                    "en": "Regular expression for parsing the text over TCP sensor response:",
+                    "de": "Regulärer Ausdruck zum Parsen der Text über TCP-Sensorantwort:"
+                    },
+                "field": {"text": {
+                                    "value": tcp_text_response_regex
+                                    }
+                        },
+            },
+            {
+                "id": "tcp_text_response_nomatch_option",
+                "label": {
+                    "en": "Response if no match for the regular expression has been found:",
+                    "de": "Antwort, falls keine Übereinstimmung mit dem regulären Ausdruck gefunden wurde:"
+                    },
+                "field": {"dropdown": {
+                                    "value": regex_nomatch_dropdown_items[index_tcp_text_response_nomatch_option]["id"],
+                                    "items": regex_nomatch_dropdown_items
+                                    }
+                        },
+            },
+            {
                 "id": "http-requests-settings",
                 "label": {"en": "Http requests:", "de": "HTTP-Anfragen:"},
                 "field": { "label": { "value": {} }}
@@ -276,8 +311,8 @@ rq_response_nomatch_option: {str(rq_response_nomatch_option)}")
                     "de": "Antwort, falls keine Übereinstimmung mit dem regulären Ausdruck gefunden wurde:"
                     },
                 "field": {"dropdown": {
-                                    "value": rq_response_nomatch_dropdown_items[index_rq_response_nomatch_option]["id"],
-                                    "items": rq_response_nomatch_dropdown_items
+                                    "value": regex_nomatch_dropdown_items[index_rq_response_nomatch_option]["id"],
+                                    "items": regex_nomatch_dropdown_items
                                     }
                         },
             },
@@ -321,6 +356,8 @@ async def handle_response_advanced(msg: ucapi.UserDataResponse) -> ucapi.Request
     tcp_text_timeout = msg.input_values["tcp_text_timeout"]
     tcp_text_response_wait = msg.input_values["tcp_text_response_wait"]
     tcp_text_terminator = msg.input_values["tcp_text_terminator"]
+    tcp_text_response_regex = msg.input_values["tcp_text_response_regex"]
+    tcp_text_response_nomatch_option = msg.input_values["tcp_text_response_nomatch_option"]
     rq_timeout = msg.input_values["rq_timeout"]
     rq_ssl_verify = msg.input_values["rq_ssl_verify"]
     rq_fire_and_forget = msg.input_values["rq_fire_and_forget"]
@@ -339,7 +376,7 @@ async def handle_response_advanced(msg: ucapi.UserDataResponse) -> ucapi.Request
         return ucapi.SetupError()
     _LOG.info("Text over tcp timeout: " +  str(tcp_text_timeout) + " seconds")
 
-    if tcp_text_response_wait == "true": #Boolean in quotes as all values are returned as strings
+    if tcp_text_response_wait == "true": #Boolean as string as all values are returned as strings
         try:
             config.Setup.set("tcp_text_response_wait", True)
         except Exception as e:
@@ -363,6 +400,22 @@ async def handle_response_advanced(msg: ucapi.UserDataResponse) -> ucapi.Request
         config.Setup.set("setup_complete", False)
         return ucapi.SetupError()
     _LOG.info("Text over tcp terminator: " +  str(tcp_text_terminator))
+
+    try:
+        config.Setup.set("tcp_text_response_regex", tcp_text_response_regex)
+    except Exception as e:
+        _LOG.error(e)
+        config.Setup.set("setup_complete", False)
+        return ucapi.SetupError()
+    _LOG.info("Text over TCP response regular expression: \"" +  str(tcp_text_response_regex) + "\"")
+
+    try:
+        config.Setup.set("tcp_text_response_nomatch_option", tcp_text_response_nomatch_option)
+    except Exception as e:
+        _LOG.error(e)
+        config.Setup.set("setup_complete", False)
+        return ucapi.SetupError()
+    _LOG.info("Text over TCP response option: \"" +  str(tcp_text_response_nomatch_option) + "\"")
 
     try:
         config.Setup.set("rq_timeout", rq_timeout)
@@ -440,9 +493,6 @@ async def show_custom_entity_config(msg: ucapi.UserDataResponse) -> ucapi.Reques
     custom_entities = config.Setup.get("custom_entities")
     config.Setup.set("setup_step", "handle_custom")
 
-    #TODO Add device profiles as checkboxes that will add them to the main configuration file. Another page will show variables from the configuration file (_vars block)
-    # Possible profiles: R_volution, JMedia Light Manager, Pioneer Receiver, Anthem
-
     #BUG \n\n causing a formatting error (wrong font and alignment) in label value field
     #TODO Create issue on bug & feature tracker with examples from the python example configuration
     return ucapi.RequestUserInput(
@@ -456,12 +506,13 @@ async def show_custom_entity_config(msg: ucapi.UserDataResponse) -> ucapi.Reques
                 "label": {"en": "Custom entities configuration", "de": "Eigene Entitäten-Konfiguration"},
                 "field": { "label":
                             { "value": {
-                                        "en": "Create your own remote entities with pre-defined commands. More details can be found in the readme file.\
-                                        If you add new commands or features to an existing entity you need to remove and re-add the entity \
-                                        from the configured entity list afterwards.",
-                                        "de": "Erstelle deine eigenen Remote Entitäten mit vor-definierten Befehlen. Mehr Details findest du in der Readme-Datei.\
-                                        Wenn du neue Befehle oder Feature zu einer bestehenden Entitäten-Konfiguration hinzufügst, \
-                                        musst du die Entität anschließend aus der konfigurierten Entitäten-Liste entfernen und neu hinzufügen."
+                                        "en": "Create your own remote entities with pre-defined commands. More details can be found in the readme file.\n\
+                                        ⚠️ Important: If you remove an entity from the configuration you need to manually remove it from the list and re-add it. \
+                                        after completing this setup. Removed entities will otherwise be shown as unavailable after a restart of the remote/integration",
+                                        "de": "Erstelle deine eigenen Remote-Entitäten mit vor-definierten Befehlen. Mehr Details findest du in der Readme-Datei.\n\
+                                        ⚠️ Wichtig: Wenn du eine Entität aus der Konfiguration entfernst, musst du diese Entität, nachdem du diese Einrichtung abgeschlossen hast, \
+                                        aus der Liste entfernen und wieder hinzufügen. Entfernte Entitäten werden sonst nach einem Neustart der Fernbedienung/Integration \
+                                        als nicht verfügbar angezeigt"
                                         }
                             }
                         },
@@ -487,7 +538,6 @@ async def handle_response_custom(msg: ucapi.UserDataResponse) -> ucapi.RequestUs
 
     custom_entities_new = msg.input_values["custom_entities"]
     custom_entities_old = config.Setup.get("custom_entities")
-    custom_entities_old_dict = config.Setup.get("custom_entities", python_dict=True)
 
     if custom_entities_new != custom_entities_old:
         try:
@@ -499,22 +549,9 @@ async def handle_response_custom(msg: ucapi.UserDataResponse) -> ucapi.RequestUs
         config.Setup.set("custom_entities_set", True)
         _LOG.info("New custom entity configuration saved")
 
-        if custom_entities_old not in (custom_entities_new, ""):
-            custom_entities_new_dict = config.Setup.get("custom_entities", python_dict=True)
-            old_keys = set(custom_entities_old_dict.keys())
-            new_keys = set(custom_entities_new_dict.keys())
-            removed_keys = old_keys - new_keys
-            old_entities = list(removed_keys)
-
-            if old_entities:
-                _LOG.info("One or more entities have been removed from the custom entities configuration. Removing them as available and configured entity")
-                for old_entity in old_entities:
-                    entity_id = config.Setup.get("custom_entities_prefix") + old_entity.lower()
-                    #BUG Entity doesn't get removed from configured entities automatically or shown as unavailable
-                    # Workaround: Manually remove it from configured entities or restart the driver and then it's shown as unavailable
-                    # https://discord.com/channels/553671366411288576/970313654190887011/1406266573819482192
-                    driver.api.configured_entities.remove(entity_id)
-                    driver.api.available_entities.remove(entity_id)
+        _LOG.debug("Clearing available and configured entities to update the entity definitions with the new custom entity configuration")
+        driver.api.available_entities.clear()
+        driver.api.configured_entities.clear()
 
     if custom_entities_new == "":
         try:
@@ -523,7 +560,7 @@ async def handle_response_custom(msg: ucapi.UserDataResponse) -> ucapi.RequestUs
             _LOG.error(e)
             config.Setup.set("setup_complete", False)
             return ucapi.SetupError()
-        _LOG.info("The entered custom entity configuration is empty. Reset to previous resp. example configuration")
+        _LOG.warning("The entered custom entity configuration is empty. Reset to previous resp. example configuration")
 
     return await show_setup_action(msg)
 

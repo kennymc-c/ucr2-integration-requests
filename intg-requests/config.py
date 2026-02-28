@@ -95,6 +95,18 @@ def validate_custom_entities(entities, allowed_second_level, allowed_fourth_leve
         features = entity_config.get("Features", {}) or entity_config.get("features", {})
         new_features = {}
 
+        # Check that if 'on' or 'off' exist, they must both exist together
+        feature_names_lower = {feat_name.lower() for feat_name in features.keys()}
+        has_on = "on" in feature_names_lower
+        has_off = "off" in feature_names_lower
+
+        if has_on or has_off:
+            if not (has_on and has_off):
+                errors.append(
+                    f"Invalid Feature configuration in entity '{entity_name}': "
+                    f"'on' and 'off' must always be used together, not separately."
+                )
+
         for feat_name, feat_value in features.items():
             for k in feat_value.keys():
                 if k.lower() not in allowed_fourth_level:
@@ -153,6 +165,26 @@ def validate_custom_entities(entities, allowed_second_level, allowed_fourth_leve
 
         entity_config["Simple Commands"] = new_cmds
 
+        # Selects - validate that referenced simple commands has been defined in the Simple Commands section and that the select options are a list
+        selects = entity_config.get("Selects", {}) or entity_config.get("selects", {})
+
+        for select_name, select_items in selects.items():
+            if not isinstance(select_items, list):
+                errors.append(
+                    f"Invalid entry '{select_name}' in Selects of entity '{entity_name}'. "
+                    f"Selects must be a list of simple command names form the higher-level entity"
+                )
+                continue
+
+            for item in select_items:
+                if item not in new_cmds:
+                    errors.append(
+                        f"Simple command '{item}' referenced in Selects -> {select_name} of entity '{entity_name}' "
+                        f"is not defined in the high-level entity simple commands list"
+                    )
+
+        entity_config["Selects"] = selects
+
     if errors:
         raise Exception("Custom entities yaml configuration validation failed with the following errors:\n" + "\n".join(errors))
 
@@ -191,7 +223,7 @@ def validate_yaml(yaml_string: str) -> dict:
         allowed_features.extend(["on", "off"])
         allowed_features.remove("on_off")
 
-    allowed_second_level = {"features", "simple commands"}
+    allowed_second_level = {"features", "simple commands", "selects"}
     allowed_fourth_level = {"type", "parameter"}
     allowed_types = set([cmd.lower() for cmd in Setup.all_cmds])
 
@@ -253,6 +285,7 @@ class Setup:
         "yaml_path": "custom_entities.yaml",
         "custom_entities_set": False,
         "custom_entities_prefix": "remote-custom-",
+        "custom_entities_select_prefix": "select-custom-",
         "tcp_text_timeout": 2,
         "tcp_text_response_wait": True,
         "tcp_text_terminator": "\n",
@@ -263,21 +296,28 @@ class Setup:
                                                 {"id": "\r\n", "label": {"en": "\\r\\n", "de": "\\r\\n"}},
                                                 {"id": ";", "label": {"en": ";", "de": ";"}}
                                                 ],
+        "tcp_text_response_regex": "",
+        "tcp_text_response_nomatch_option": "full",
+        "regex_nomatch_dropdown_items": [
+                                                {"id": "full", "label": {"en": "Full", "de": "Komplett"}},
+                                                {"id": "empty", "label": {"en": "Empty", "de": "Leer"}},
+                                                {"id": "error", "label": {"en": "Error", "de": "Fehler"}}
+                                                ],
         "rq_timeout": 2,
         "rq_ssl_verify": True,
         "rq_user_agent": "uc-intg-requests",
         "rq_fire_and_forget": False,
         "rq_response_regex": "",
         "rq_response_nomatch_option": "full",
-        "rq_response_nomatch_dropdown_items": [
-                                                {"id": "full", "label": {"en": "Full", "de": "Komplett"}},
-                                                {"id": "empty", "label": {"en": "Empty", "de": "Leer"}},
-                                                {"id": "error", "label": {"en": "Error", "de": "Fehler"}}
-                                                ],
         "id-rq-sensor": "http-response",
         "name-rq-sensor": {
                         "en": "HTTP Request Response",
                         "de": "HTTP Anfrage-Antwort"
+                        },
+        "id-tcp-text-sensor": "tcp-text-response",
+        "name-tcp-text-sensor": {
+                        "en": "Text over TCP Response",
+                        "de": "Text über TCP Antwort"
                         },
         "id-get": "http-get",
         "name-get": "HTTP Get",
@@ -300,12 +340,12 @@ class Setup:
                         }
     }
     __setters = ["standby", "setup_complete", "setup_reconfigure", "tcp_text_timeout", "tcp_text_response_wait", "tcp_text_terminator", \
-                "tcp_text_terminator_dropdown_items", "rq_timeout", "rq_user_agent", "rq_ssl_verify", \
+                "tcp_text_response_regex", "tcp_text_response_nomatch_option", "rq_timeout", "rq_user_agent", "rq_ssl_verify", \
                 "rq_fire_and_forget", "rq_response_regex", "rq_response_nomatch_option", "custom_entities", "custom_entities_set", \
                 "bundle_mode", "cfg_path", "yaml_path", "setup_step"]
     #Skip runtime only related values in config file
-    __storers = ["setup_complete", "tcp_text_timeout", "tcp_text_response_wait", "tcp_text_terminator", "tcp_text_terminator_dropdown_items", \
-                "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", \
+    __storers = ["setup_complete", "tcp_text_timeout", "tcp_text_response_wait", "tcp_text_terminator", \
+                "tcp_text_response_regex", "tcp_text_response_nomatch_option", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", \
                 "rq_response_regex", "rq_response_nomatch_option", "custom_entities", "custom_entities_set"]
 
     all_cmds = ["get", "post", "patch", "put", "delete", "head", "wol", "tcp-text"]
@@ -351,7 +391,7 @@ class Setup:
             yaml_path = Setup.__conf["yaml_path"]
             with open(yaml_path, "r", encoding="utf-8") as f:
                 return f.read()
-        if Setup.__conf[key] == "" and key != "rq_response_regex": #rq_response_regex can be empty
+        if Setup.__conf[key] == "" and key not in ("rq_response_regex", "tcp_text_response_regex"):
             raise ValueError("Got empty value for " + key + " from config storage")
         return Setup.__conf[key]
 
@@ -481,6 +521,12 @@ into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
                     _LOG.debug("Skip loading custom text over tcp command terminator as it has not been changed during setup. \
 The Default value of " + repr(Setup.get("tcp_text_terminator")) + " will be used")
+
+                if "tcp_text_response_regex" in configfile:
+                    Setup.__conf["tcp_text_response_regex"] = configfile["tcp_text_response_regex"]
+                    _LOG.info("Loaded tcp_text_response_regex: " + str(configfile["tcp_text_response_regex"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
+                else:
+                    _LOG.debug("No regular expression has not been set during setup. The complete http request response will be sent to the http request response sensor")
 
                 if "rq_user_agent" in configfile:
                     Setup.__conf["rq_user_agent"] = configfile["rq_user_agent"]

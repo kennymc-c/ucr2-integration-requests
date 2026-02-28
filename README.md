@@ -20,13 +20,14 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
     - [Additional command parameters](#additional-command-parameters)
     - [SSL verification \& Fire and forget mode](#ssl-verification--fire-and-forget-mode)
     - [Use case examples](#use-case-examples)
-    - [Show (parts) of the server response text in the remote ui](#show-parts-of-the-server-response-text-in-the-remote-ui)
+    - [Response sensor entity](#response-sensor-entity)
   - [3 - Text over TCP](#3---text-over-tcp)
     - [Wait for a response message](#wait-for-a-response-message)
     - [Control characters](#control-characters)
       - [Escaping](#escaping)
     - [Sending Raw data](#sending-raw-data)
-  - [4 - Custom Entities](#4---custom-entities)
+    - [Response sensor entity](#response-sensor-entity-1)
+  - [4 - Custom Entities (Remote \& Select)](#4---custom-entities-remote--select)
     - [⚠️ Important](#️-important)
     - [Example yaml configuration](#example-yaml-configuration)
     - [Using variables](#using-variables)
@@ -128,9 +129,9 @@ If you activate the option to ignore HTTP requests errors in the integration set
 | Adding json payload data (content type is set automatically)                 | `json`    |  `url="https://httpbin.org/post", json="{'key1':'value1','key2':'value2'}"` |
 | Adding xml payload data                   | `data` and `headers` |  `url="https://httpbin.org/post", data="<Tests Id='01'><Test TestId='01'><Name>Command name</Name></Test></Tests>", headers="{'Content-Type':'application/xml'}"` |
 
-#### Show (parts) of the server response text in the remote ui
+#### Response sensor entity
 
-The integration exposes a sensor entity that shows the text of the response body from the last executed http request command. Responses are also used for the media_title attribute of the associated request method's media player entity. This allows you to add a media player widget to an activity and see the response within an activity because you can't add sensors to activities as there's no widget for them. If the sensor entity has not been added as a configured entity in the web configurator a info message will be shown in the integration log.
+The integration exposes a sensor entity that shows the text of the response body from the last executed http request command. If the sensor entity has not been added as a configured entity in the web configurator a info message will be shown in the integration log.
 
 The output can be parsed to only show a specific part of the response message using regular expressions. These can be configured in the advanced setup. Sites like [regex101.com](https://regex101.com) or the AI model of your choice can help you with finding matching expressions. By default the complete response message will be used if no regular expression has been set or no matches have been found. The advanced setup has an option to use an empty response or show an error message instead if no match has been found.
 
@@ -160,23 +161,31 @@ C++ and hex style control characters are supported to e.g. add a new line (`\n` 
 
 By adding `raw=` at the beginning of your message you can send raw binary data instead of utf-8 encoded text. Binary data has to be written as hex bytes (`0x00`), words (`0x0000`), double words or longer values (e.g. `192.168.1.1:1234, "raw=0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"`). The `0x` prefix is optional. The configured command terminator is ignored in this case.
 
-### 4 - Custom Entities
+#### Response sensor entity
 
-If you want to have a separate entities e.g. for different devices with pre-defined simple commands as well as separate on/off/toggle commands with power state handling you can configure them in the custom entity configuration during the integration setup. This will expose a remote entity for each configured entity with all features and commands from the configuration.
+The integration exposes a sensor entity that shows the text of the response body from the last executed http request command. If the sensor entity has not been added as a configured entity in the web configurator a info message will be shown in the integration log.
 
-The configuration is in the YAML format and contains different levels to define each entity with it's own remote entity features (on/off/toggle) and optional simple commands. Each command can be any type of supported command by this integration. Parameters for these commands can also be specified. You can find an example configuration below.
+The output can be parsed to only show a specific part of the response message using regular expressions. These can be configured in the advanced setup. Sites like [regex101.com](https://regex101.com) or the AI model of your choice can help you with finding matching expressions. By default the complete response message will be used if no regular expression has been set or no matches have been found. The advanced setup has an option to use an empty response or show an error message instead if no match has been found.
+
+### 4 - Custom Entities (Remote & Select)
+
+If you want to have separate entities e.g. for different devices with pre-defined simple commands as well as separate on/off/toggle commands with power state handling and optional select entities with selected commands from that entity you can configure them in the custom entity configuration during the integration setup. This will expose a remote entity for each configured entity with all features and commands from the configuration and optional select entities.
+
+The configuration is in the YAML format and contains different levels to define each entity with it's own remote entity features (on/off/toggle), optional simple commands and select entities. Each command can be any type of supported command by this integration. Parameters for these commands can also be specified. You can find an example configuration below.
 
 Each sub level is separated with a tab. As tabs can't be entered in the web configurator text field you need to either copy it from a text edit program or use 2 spaces instead. Simple command names can be up to 20 characters long, need to be in upper case and can only contain ```A-Z```, ```a-z```, ```0-9``` and ```/_.:+#*°@%()?-```. These names get automatically corrected and shortened during setup if they don't meet the requirements. Any non allowed character gets replaced with an underscore (```_```).
 
-If you add new commands or features to an existing entity you need to remove and re-add the entity from the configured entity list afterwards. If you removed an entity from the configuration file it doesn't get automatically removed from your configured entities. You have to do this manually. If you restart the integration they will also be shown as unavailable.
+Power state handling is currently not working with send command and send command sequence. Please use the dedicated switch on/off/toggle commands.
 
-Power state handling is currently not working with send command and send command sequence. Please use the dedicated switch on/of/toggle commands.
+After a restart the current option of all select entities will be reset to the first command in the list as well as if the current option can not be retrieved.
 
 #### ⚠️ Important
 
-- Please backup your configuration somewhere else if you're running the integration as a custom integration on the remote as custom integrations are not yet included in the remote backup file
+- Please **backup your configuration** somewhere else if you're running the integration as a custom integration on the remote as custom integrations are not yet included in the remote backup file
 - The name for the ```On``` and ```Off``` features have to be written in quotes as they get converted into boolean values otherwise
 - If you have any special characters or the words ```true, false, yes, no, on, off, null``` in your command parameters or names it's advised to put it in quotes as well
+- The ```On``` and ```Off``` features have to be always used together and not separately
+- If you removed an entity from the configuration (either a full entity configuration or just one or more connected select entities) these don't get automatically removed from your configured entities list. You have to do this manually or do it before updating the configuration. If you restart the remote/integration they also be shown as unavailable otherwise.
 
 #### Example yaml configuration
 
@@ -211,6 +220,17 @@ Entity1:
         address: 192.168.1.101:12345
         text: raw=0xDF 0xAD 0xBE 0xEF 0x00 0xFF
         timeout: 7
+    INPUT_2:
+      Type: post
+      Parameter:
+        url: https://httpbin.org/post
+        json:
+          command: input
+          number: 2
+  Selects:
+    Inputs:
+    - INPUT_1
+    - INPUT_2
 ```
 
 #### Using variables
@@ -236,7 +256,7 @@ Entity1:
 
 #### Limitations / Disclaimer
 
-*⚠️ This requires firmware version 2.6.9 or newer (installing firmware versions above 1.7.14 for Remote Two currently need beta updates to be enabled).*
+*⚠️ This integration requires firmware version 2.8.3 or newer (installing firmware versions above 1.7.14 for Remote Two currently need beta updates to be enabled).*
 
 ##### Missing firmware features
 

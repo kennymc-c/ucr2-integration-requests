@@ -21,7 +21,6 @@ from getmac import get_mac_address
 
 import config
 import sensor
-import media_player
 
 _LOG = logging.getLogger(__name__)
 
@@ -130,22 +129,28 @@ def tcp_text_process_control_data(data):
     return data
 
 
-def parse_rq_response(response: str):
-    """Parse http request response with configured regular expression"""
+def update_response(response: str, cmd: str):
+    """Parse http request or tcp text response with configured regular expression and update the corresponding sensor entity"""
 
-    regex = config.Setup.get("rq_response_regex")
-    nomatch_option = config.Setup.get("rq_response_nomatch_option")
+    if cmd == "http-request":
+        regex = config.Setup.get("rq_response_regex")
+        nomatch_option = config.Setup.get("rq_response_nomatch_option")
+    elif cmd == "tcp-text":
+        regex = config.Setup.get("tcp_text_response_regex")
+        nomatch_option = config.Setup.get("tcp_text_response_nomatch_option")
+    else:
+        raise Exception("Invalid command for response parsing: " + cmd)
 
     if regex == "":
-        parsed_response = response
-        _LOG.debug("No regular expression set for the http request response sensor. The complete response will be used")
+        parsed_response = " ".join(response.split()).replace("\\\"", "\"") #Remove all line breaks and join them with spaces
+        _LOG.debug("No regular expression set for the " + cmd + " response sensor. The complete response will be used")
     else:
         match = search(regex, response)
         if match:
             parsed_response = match.group(1)
             _LOG.debug("Parsed response from configured regex: " + parsed_response)
         else:
-            _LOG.warning("No matches found in the http request response for the regular expression " + regex)
+            _LOG.warning("No matches found in the " + cmd + " response for the regular expression " + regex)
 
             if nomatch_option == "full":
                 _LOG.debug("The full response will be used instead")
@@ -158,25 +163,13 @@ def parse_rq_response(response: str):
                 _LOG.debug("An empty response will be used instead")
                 parsed_response = ""
 
-    return parsed_response
-
-
-
-def update_response(method:str, response: str):
-    """Update the response in the sensor entity and media player widget"""
-
-    entity_id = "http-" + method
-
-    parsed_response = parse_rq_response(response)
-
     try:
-        sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), parsed_response)
-    except ModuleNotFoundError as f:
-        _LOG.info(f)
+        if cmd == "http-request":
+            sensor.update_rq_sensor(config.Setup.get("id-rq-sensor"), parsed_response)
+        if cmd == "tcp-text":
+            sensor.update_tcp_text_sensor(config.Setup.get("id-tcp-text-sensor"), parsed_response)
     except Exception as e:
         _LOG.error(e)
-
-    media_player.update_rq_media_widget(entity_id, parsed_response)
 
 
 
@@ -292,7 +285,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
         _LOG.info("Sent http-" + method + " request to: " + url)
         if response.text != "":
             _LOG.info("Server response: " + response.text)
-            update_response(method, response.text)
+            update_response(response.text, "http-request")
         else:
             _LOG.debug("Received 200 - OK status code")
         return ucapi.StatusCodes.OK
@@ -306,7 +299,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
             if response.status_code == 404:
                 if response.text != "":
                     _LOG.info("Server response: " + response.text)
-                    update_response(method, response.text)
+                    update_response(response.text, "http-request")
                 return ucapi.StatusCodes.NOT_FOUND
             return ucapi.StatusCodes.BAD_REQUEST
         return ucapi.StatusCodes.SERVER_ERROR
@@ -315,7 +308,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
         _LOG.info("Received informational or redirection http status code: " + str(response.status_code))
         if response.text != "":
             _LOG.info("Server response: " + response)
-            update_response(method, response.text)
+            update_response(response.text, "http-request")
         return ucapi.StatusCodes.OK
 
 
@@ -425,8 +418,10 @@ async def tcp_text(cmd_param: str) -> str:
         if is_printable(received_message) and received_message.strip():
             processed_message = received_message.replace("\r", "\n")
             _LOG.info("Received text response: " + processed_message)
+            update_response(processed_message, "tcp-text")
         else:
             _LOG.info("Received binary response: " + binary_message)
+            update_response(binary_message, "tcp-text")
 
     return ucapi.StatusCodes.OK
 

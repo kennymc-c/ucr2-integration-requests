@@ -1,4 +1,4 @@
-ucapi==0.5.1
+ucapi==0.5.2
 requests==2.32.5
 wakeonlan==3.1.0
 getmac==0.9.5
