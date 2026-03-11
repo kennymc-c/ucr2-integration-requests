@@ -240,35 +240,7 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
     config.Setup.set("standby", False)
 
     if config.Setup.get("custom_entities_set"):
-        custom_entities = config.Setup.get("custom_entities", python_dict=True)
-        select_prefix = config.Setup.get("custom_entities_select_prefix")
-
-        for entity_name, entity_config in custom_entities.items():
-
-            selects_config = entity_config.get("Selects", {}) or {}
-            for select_name, select_options in selects_config.items():
-                if not isinstance(select_options, list):
-                    _LOG.warning(f"Select '{select_name}' in entity '{entity_name}' is not a list, skipping")
-                    continue
-
-                select_entity_id = f"{select_prefix}{entity_name.lower()}-{select_name.lower()}"
-
-                # Only the defined select options are available in the select entity
-                all_options = select_options
-                current_option = select_options[0] if select_options else ""
-
-                _LOG.debug(f"Update options to: {all_options}")
-                _LOG.debug(f"Update current option to: {current_option}")
-
-                attributes={
-                    ucapi.select.Attributes.OPTIONS: all_options,
-                    ucapi.select.Attributes.CURRENT_OPTION: current_option,
-                    ucapi.select.Attributes.STATE: ucapi.select.States.ON
-                }
-
-                #BUG WORKAROUND Always send DeviceStates.CONNECTED when updating select entity attributes
-                await api.set_device_state(ucapi.DeviceStates.CONNECTED)
-                api.available_entities.update_attributes(select_entity_id, attributes)
+        await selects.set_all_attributes()
 
 
 

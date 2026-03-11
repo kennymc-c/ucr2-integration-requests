@@ -491,6 +491,7 @@ async def show_custom_entity_config(msg: ucapi.UserDataResponse) -> ucapi.Reques
     """Show the custom entity configuration screen to the user"""
 
     custom_entities = config.Setup.get("custom_entities")
+    custom_entities_title_case_select_options = config.Setup.get("custom_entities_title_case_select_options")
     config.Setup.set("setup_step", "handle_custom")
 
     #BUG \n\n causing a formatting error (wrong font and alignment) in label value field
@@ -527,7 +528,20 @@ async def show_custom_entity_config(msg: ucapi.UserDataResponse) -> ucapi.Reques
                                 "value": custom_entities,
                                     }
                         }
-            }
+            },
+                        {
+                "id": "custom_entities_title_case_select_options",
+                "label": {
+                    "en": "Convert all select entity option to a title cased version and replace underscores with spaces \
+                        (RECEIVER_INPUT_1 -> Receiver Input 1):",
+                    "de": "In allen Optionen von Auswahl-Entitäten die Anfangsbuchstaben aller Wörter groß schreiben \
+                        und Unterstriche durch Leerzeichen ersetzten (RECEIVER_INPUT_1 -> Receiver Input 1):"
+                    },
+                "field": {"checkbox": {
+                                    "value": custom_entities_title_case_select_options
+                                    }
+                        },
+            },
         ]
     )
 
@@ -538,6 +552,7 @@ async def handle_response_custom(msg: ucapi.UserDataResponse) -> ucapi.RequestUs
 
     custom_entities_new = msg.input_values["custom_entities"]
     custom_entities_old = config.Setup.get("custom_entities")
+    custom_entities_title_case_select_options = msg.input_values["custom_entities_title_case_select_options"]
 
     if custom_entities_new != custom_entities_old:
         try:
@@ -561,6 +576,23 @@ async def handle_response_custom(msg: ucapi.UserDataResponse) -> ucapi.RequestUs
             config.Setup.set("setup_complete", False)
             return ucapi.SetupError()
         _LOG.warning("The entered custom entity configuration is empty. Reset to previous resp. example configuration")
+
+    if custom_entities_title_case_select_options == "true": #Boolean in quotes as all values are returned as strings
+        try:
+            config.Setup.set("custom_entities_title_case_select_options", True)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
+        _LOG.info("Custom select entities title case mode activated. Always return OK to the remote")
+    else:
+        try:
+            config.Setup.set("custom_entities_title_case_select_options", False)
+        except Exception as e:
+            _LOG.error(e)
+            config.Setup.set("setup_complete", False)
+            return ucapi.SetupError()
+        _LOG.info("Custom select entities title case mode deactivated. Return the actual status code")
 
     return await show_setup_action(msg)
 

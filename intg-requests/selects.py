@@ -35,6 +35,62 @@ async def update_attributes(entity_id: str, option: str) -> bool:
 
 
 
+
+
+def _resolve_select_option(item, use_title_case: bool) -> tuple[str, str]:
+    """
+    Returns (command_id, display_label) for a single select option item.
+
+    Handles two stored formats:
+      - plain string  → "INPUT_2"
+      - flat dict     → {"INPUT_1": "Video Input 1"}
+    """
+    if isinstance(item, dict) and len(item) == 1:
+        cmd = list(item.keys())[0]
+        displayname = list(item.values())[0]
+        return cmd, str(displayname) if displayname else cmd
+    cmd = str(item)
+    label = cmd.replace("_", " ").title() if use_title_case else cmd
+    return cmd, label
+
+
+
+async def set_all_attributes():
+    """Set all option attributes for all select entities"""
+
+    custom_entities = config.Setup.get("custom_entities", python_dict=True)
+    select_prefix = config.Setup.get("custom_entities_select_prefix")
+    use_title_case = config.Setup.get("custom_entities_title_case_select_options")
+
+    for entity_name, entity_config in custom_entities.items():
+
+        selects_config = entity_config.get("Selects", {}) or {}
+        for select_name, select_options in selects_config.items():
+            select_entity_id = f"{select_prefix}{entity_name.lower()}-{select_name.lower()}"
+
+            # Build parallel lists: command ids (for execution) and display labels (for the UI)
+            all_options = []   # display labels shown in the UI
+            for option in select_options:
+                _cmd, label = _resolve_select_option(option, use_title_case)
+                all_options.append(label)
+
+            current_option = all_options[0] if all_options else ""
+
+            _LOG.debug(f"Update options to: {all_options}")
+            _LOG.debug(f"Update current option to: {current_option}")
+
+            attributes = {
+                ucapi.select.Attributes.OPTIONS: all_options,
+                ucapi.select.Attributes.CURRENT_OPTION: current_option,
+                ucapi.select.Attributes.STATE: ucapi.select.States.ON
+            }
+
+            # BUG WORKAROUND Always send DeviceStates.CONNECTED when updating select entity attributes
+            await driver.api.set_device_state(ucapi.DeviceStates.CONNECTED)
+            driver.api.available_entities.update_attributes(select_entity_id, attributes)
+
+
+
 def _get_data(entity: ucapi.Select, custom_config: dict):
     """Get all options and the higher-level remote config for a select entity from the custom configuration.
 
@@ -80,21 +136,28 @@ def _get_data(entity: ucapi.Select, custom_config: dict):
 
 
 
-async def _execute_command(select_entity_id: str, entity_config: dict[str, Any], option: str) -> ucapi.StatusCodes:
-    """Send command for calculated option and update entity attributes on success."""
+async def _execute_command(select_entity_id: str, entity_config: dict[str, Any], command: str, label: str | None = None) -> ucapi.StatusCodes:
+    """Send simple command and update entity attributes with the display label on success.
+    
+    :param command: simple command id to send (e.g. INPUT_1)
+    :param label: display label used for the attribute update; defaults to command if not given
+    """
 
-    _LOG.debug(f"Executing option '{option}' for entity '{select_entity_id}'")
+    if label is None:
+        label = command
+
+    _LOG.debug(f"Executing command '{command}' (label: '{label}') for entity '{select_entity_id}'")
     _LOG.debug(str(entity_config))
 
     cmd_status = await remote.send_command(
         entity_id=select_entity_id,
         entity_config=entity_config,
-        command=option,
+        command=command,
     )
 
     if cmd_status == ucapi.StatusCodes.OK:
         try:
-            await update_attributes(select_entity_id, option)
+            await update_attributes(select_entity_id, label)
         except Exception as e:
             _LOG.warning(f"Could not update select entity attributes for {select_entity_id}: {e}")
 
@@ -121,33 +184,43 @@ async def select_cmd_handler(entity: ucapi.Select, cmd_id: str, _params: dict | 
 
     custom_entities = config.Setup.get("custom_entities", python_dict=True)
 
-    cycle = True #Using the same cycle=True default as HA as this parameter currently can't be changed by the user
+    cycle = True #https://github.com/unfoldedcircle/core-api/blob/0cb10a6066eba1abc26b687d1d0e41bea7f3efd7/doc/entities/entity_select.md?plain=1#L137
     if _params:
         try:
             if _params["cycle"] == "false":
                 cycle = False
         except KeyError:
-            pass #BUG Cycle parameter currently not included in web configurator or commands
-        #although it's not labeled as a planned feature in the core-api docs
+            pass  #TODO #WAIT Cycle parameter currently not included in web configurator or commands
 
     try:
-        options , remote_config = _get_data(entity.id, custom_entities)
+        options, remote_config = _get_data(entity.id, custom_entities)
     except Exception:
         return ucapi.StatusCodes.NOT_FOUND
+
+    use_title_case = config.Setup.get("custom_entities_title_case_select_options")
+
+    # Build list of (cmd_id, display_label) tuples once for all command types.
+    # _resolve_select_option handles both plain strings and {"CMD": "Displayname"} dicts.
+    resolved: list[tuple[str, str]] = [_resolve_select_option(o, use_title_case) for o in options]
 
     match cmd_id:
 
         case ucapi.select.Commands.SELECT_OPTION:
-            current_option = _params.get("option")
-            return await _execute_command(select_entity_id=entity.id, entity_config=remote_config, option=current_option)
+            requested_label = _params.get("option")
+            # Find the pair whose display label matches what the UI sent
+            pair = next(((cmd, lbl) for cmd, lbl in resolved if lbl == requested_label), None)
+            if pair is None:
+                _LOG.warning(f"Option '{requested_label}' not found in resolved options for {entity.id}")
+                return ucapi.StatusCodes.BAD_REQUEST
+            return await _execute_command(entity.id, remote_config, command=pair[0], label=pair[1])
 
         case ucapi.select.Commands.SELECT_FIRST:
-            first_option = options[0]
-            return await _execute_command(select_entity_id=entity.id, entity_config=remote_config, option=first_option)
+            cmd, lbl = resolved[0]
+            return await _execute_command(entity.id, remote_config, command=cmd, label=lbl)
 
         case ucapi.select.Commands.SELECT_LAST:
-            last_option = options[-1]
-            return await _execute_command(select_entity_id=entity.id, entity_config=remote_config, option=last_option)
+            cmd, lbl = resolved[-1]
+            return await _execute_command(entity.id, remote_config, command=cmd, label=lbl)
 
         case ucapi.select.Commands.SELECT_NEXT | ucapi.select.Commands.SELECT_PREVIOUS:
             try:
@@ -157,55 +230,43 @@ async def select_cmd_handler(entity: ucapi.Select, cmd_id: str, _params: dict | 
                 _LOG.info(str(e))
                 return ucapi.StatusCodes.CONFLICT
 
-            current_option = next((s.get("attributes", {}).get(ucapi.select.Attributes.CURRENT_OPTION) for s in stored_data if s.get("entity_id") == entity.id), None)
+            current_label = next(
+                (s.get("attributes", {}).get(ucapi.select.Attributes.CURRENT_OPTION)
+                 for s in stored_data if s.get("entity_id") == entity.id),
+                None
+            )
 
-            try:
-                idx = options.index(current_option) if current_option in options else -1
-            except ValueError:
-                idx = -1
+            # Match by display label (what is stored in the attribute)
+            idx = next((i for i, (_, lbl) in enumerate(resolved) if lbl == current_label), -1)
 
             if idx == -1:
-                _LOG.warning("Could't retrieve the current option. Will use the first option instead")
-                fallback_option = options[0]
-                return await _execute_command(
-                    select_entity_id=entity.id,
-                    entity_config=remote_config,
-                    option=fallback_option,
-                )
+                _LOG.warning("Couldn't retrieve the current option. Will use the first option instead")
+                cmd, lbl = resolved[0]
+                return await _execute_command(entity.id, remote_config, command=cmd, label=lbl)
 
-            last_index = len(options) - 1
+            last_index = len(resolved) - 1
 
             if cmd_id == ucapi.select.Commands.SELECT_NEXT:
                 if idx == last_index:
                     if not cycle:
-                        _LOG.info("Reached the end of the options list. Won't cycle to the first option as cycling is disabled for this command")
+                        _LOG.info("Reached the end of the options list. Won't cycle to the first option as cycling is disabled")
                         return ucapi.StatusCodes.OK
                     next_idx = 0
                 else:
                     next_idx = idx + 1
-
-                next_option = options[next_idx]
-                return await _execute_command(
-                    select_entity_id=entity.id,
-                    entity_config=remote_config,
-                    option=next_option,
-                )
+                cmd, lbl = resolved[next_idx]
+                return await _execute_command(entity.id, remote_config, command=cmd, label=lbl)
 
             if cmd_id == ucapi.select.Commands.SELECT_PREVIOUS:
                 if idx == 0:
                     if not cycle:
-                        _LOG.info("Reached the beginning of the options list. Won't cycle to the last option as cycling is disabled for this command")
+                        _LOG.info("Reached the beginning of the options list. Won't cycle to the last option as cycling is disabled")
                         return ucapi.StatusCodes.OK
                     prev_idx = last_index
                 else:
                     prev_idx = idx - 1
-
-                previous_option = options[prev_idx]
-                return await _execute_command(
-                    select_entity_id=entity.id,
-                    entity_config=remote_config,
-                    option=previous_option,
-                )
+                cmd, lbl = resolved[prev_idx]
+                return await _execute_command(entity.id, remote_config, command=cmd, label=lbl)
 
         case _:
             _LOG.info(f"Unknown command \"{cmd_id}\" for custom select entity with id {entity.id}")

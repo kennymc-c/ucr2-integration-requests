@@ -142,14 +142,14 @@ def validate_custom_entities(entities, allowed_second_level, allowed_fourth_leve
             for k in cmd_value.keys():
                 if k.lower() not in allowed_fourth_level:
                     errors.append(
-                        f"Invalid entry '{k}' in Simple Commands -> {cmd_name} of entity '{entity_name}'. "
+                        f"Invalid entry \"{k}\" in Simple Commands -> {cmd_name} of entity \"{entity_name}\". "
                         f"Only {sorted(allowed_fourth_level)} are allowed."
                     )
 
             if "Type" in cmd_value:
                 if cmd_value["Type"].lower() not in allowed_types:
                     errors.append(
-                        f"Invalid type '{cmd_value['Type']}' in Simple Commands -> {cmd_name} of entity '{entity_name}'. "
+                        f"Invalid type '{cmd_value['Type']}' in Simple Commands -> {cmd_name} of entity \"{entity_name}\". "
                         f"Only {sorted(allowed_types)} are allowed."
                     )
 
@@ -157,7 +157,7 @@ def validate_custom_entities(entities, allowed_second_level, allowed_fourth_leve
 
             if new_name != cmd_name:
                 _LOG.warning(
-                    f"Simple command name \"{cmd_name}\" in entity \"{entity_name}\" has been corrected to '{new_name}' "
+                    f"Simple command name \"{cmd_name}\" in entity \"{entity_name}\" has been corrected to \"{new_name}\" "
                     f"to match the simple command name requirements"
                 )
 
@@ -165,25 +165,44 @@ def validate_custom_entities(entities, allowed_second_level, allowed_fourth_leve
 
         entity_config["Simple Commands"] = new_cmds
 
-        # Selects - validate that referenced simple commands has been defined in the Simple Commands section and that the select options are a list
+        # Selects – each item is either a plain string or a single-key dict with an optional displayname
         selects = entity_config.get("Selects", {}) or entity_config.get("selects", {})
 
+        new_selects = {}
         for select_name, select_items in selects.items():
-            if not isinstance(select_items, list):
-                errors.append(
-                    f"Invalid entry '{select_name}' in Selects of entity '{entity_name}'. "
-                    f"Selects must be a list of simple command names form the higher-level entity"
-                )
-                continue
-
+            corrected_items = []
             for item in select_items:
-                if item not in new_cmds:
-                    errors.append(
-                        f"Simple command '{item}' referenced in Selects -> {select_name} of entity '{entity_name}' "
-                        f"is not defined in the high-level entity simple commands list"
-                    )
 
-        entity_config["Selects"] = selects
+                if isinstance(item, str):
+                    corrected_item = re.sub(pattern, "_", item).upper()[:20]
+                    if corrected_item != item:
+                        _LOG.warning(
+                            f"Select item \"{item}\" in Selects -> {select_name} of entity \"{entity_name}\" "
+                            f"has been corrected to '{corrected_item}' to match the simple command name requirements"
+                        )
+                    corrected_items.append(corrected_item)
+
+                elif isinstance(item, dict) and len(item) == 1:
+                    raw_cmd = list(item.keys())[0]
+                    cmd_meta = item[raw_cmd]  # may be None or a dict
+
+                    corrected_cmd = re.sub(pattern, "_", str(raw_cmd)).upper()[:20]
+                    if corrected_cmd != str(raw_cmd):
+                        _LOG.warning(
+                            f"Select item \"{raw_cmd}\" in Selects -> {select_name} of entity \"{entity_name}\" "
+                            f"has been corrected to '{corrected_cmd}' to match the simple command name requirements"
+                        )
+
+                    displayname = cmd_meta if isinstance(cmd_meta, str) else None
+
+                    if displayname is not None:
+                        corrected_items.append({corrected_cmd: str(displayname)})
+                    else:
+                        corrected_items.append(corrected_cmd)
+
+            new_selects[select_name] = corrected_items
+
+        entity_config["Selects"] = new_selects
 
     if errors:
         raise Exception("Custom entities yaml configuration validation failed with the following errors:\n" + "\n".join(errors))
@@ -286,6 +305,7 @@ class Setup:
         "custom_entities_set": False,
         "custom_entities_prefix": "remote-custom-",
         "custom_entities_select_prefix": "select-custom-",
+        "custom_entities_title_case_select_options": False,
         "tcp_text_timeout": 2,
         "tcp_text_response_wait": True,
         "tcp_text_terminator": "\n",
@@ -342,11 +362,11 @@ class Setup:
     __setters = ["standby", "setup_complete", "setup_reconfigure", "tcp_text_timeout", "tcp_text_response_wait", "tcp_text_terminator", \
                 "tcp_text_response_regex", "tcp_text_response_nomatch_option", "rq_timeout", "rq_user_agent", "rq_ssl_verify", \
                 "rq_fire_and_forget", "rq_response_regex", "rq_response_nomatch_option", "custom_entities", "custom_entities_set", \
-                "bundle_mode", "cfg_path", "yaml_path", "setup_step"]
+                "custom_entities_title_case_select_options", "bundle_mode", "cfg_path", "yaml_path", "setup_step"]
     #Skip runtime only related values in config file
     __storers = ["setup_complete", "tcp_text_timeout", "tcp_text_response_wait", "tcp_text_terminator", \
                 "tcp_text_response_regex", "tcp_text_response_nomatch_option", "rq_timeout", "rq_user_agent", "rq_ssl_verify", "rq_fire_and_forget", \
-                "rq_response_regex", "rq_response_nomatch_option", "custom_entities", "custom_entities_set"]
+                "rq_response_regex", "rq_response_nomatch_option", "custom_entities", "custom_entities_set", "custom_entities_title_case_select_options"]
 
     all_cmds = ["get", "post", "patch", "put", "delete", "head", "wol", "tcp-text"]
     rq_ids = [__conf["id-rq-sensor"], __conf["id-get"], __conf["id-post"], __conf["id-patch"], __conf["id-put"], __conf["id-delete"], __conf["id-head"]]
@@ -567,6 +587,12 @@ The Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
                     _LOG.info("Loaded custom_entities_set: " + str(configfile["custom_entities_set"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
                     _LOG.debug("Skip loading custom_entities_set as no custom configuration has been set during setup.")
+
+                if "custom_entities_title_case_select_options" in configfile:
+                    Setup.__conf["custom_entities_title_case_select_options"] = configfile["custom_entities_title_case_select_options"]
+                    _LOG.info("Loaded custom_entities_title_case_select_options: " + str(configfile[""]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
+                else:
+                    _LOG.debug("Skip loading custom_entities_title_case_select_options as no custom configuration has been set during setup.")
 
         else:
             _LOG.info(Setup.__conf["cfg_path"] + " does not exist (yet). Please start the setup process")

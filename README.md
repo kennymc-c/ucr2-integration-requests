@@ -169,15 +169,17 @@ The output can be parsed to only show a specific part of the response message us
 
 ### 4 - Custom Entities (Remote & Select)
 
-If you want to have separate entities e.g. for different devices with pre-defined simple commands as well as separate on/off/toggle commands with power state handling and optional select entities with selected commands from that entity you can configure them in the custom entity configuration during the integration setup. This will expose a remote entity for each configured entity with all features and commands from the configuration and optional select entities.
+If you want to have separate entities e.g. for different devices with pre-defined simple commands as well as separate on/off/toggle commands with power state handling and optional select entities with selected simple commands from that entity you can configure them in the custom entity configuration during the integration setup. This will expose a remote entity for each configured entity with all features and commands from the configuration and optional select entities.
 
 The configuration is in the YAML format and contains different levels to define each entity with it's own remote entity features (on/off/toggle), optional simple commands and select entities. Each command can be any type of supported command by this integration. Parameters for these commands can also be specified. You can find an example configuration below.
 
-Each sub level is separated with a tab. As tabs can't be entered in the web configurator text field you need to either copy it from a text edit program or use 2 spaces instead. Simple command names can be up to 20 characters long, need to be in upper case and can only contain ```A-Z```, ```a-z```, ```0-9``` and ```/_.:+#*°@%()?-```. These names get automatically corrected and shortened during setup if they don't meet the requirements. Any non allowed character gets replaced with an underscore (```_```).
+Each sub level is separated with a tab. As tabs can't be entered in the web configurator text field you need to either copy it from a text edit program or use 2 spaces instead. Simple command names can be up to 20 characters long, need to be in upper case and can only contain ```A-Z```, ```a-z```, ```0-9``` and ```/_.:+#*°@%()?-```. These names get automatically corrected and shortened during setup if they don't meet the requirements. Any non allowed character gets replaced with an underscore (```_```). This is due to a name restriction for these type of commands by the remote side.
+
+Tip: If you use simple command names that follow the [remote entity command name patterns](https://github.com/unfoldedcircle/core-api/blob/main/doc/entities/entity_remote.md#command-name-patterns) it's more likely they will be automatically mapped to buttons with the same name or grouped with similar commands on the remote entity ui pages.
+
+All select entity options need be named exactly like a corresponding simple command. Optionally you can toggle to automatically title case and replace underscores with spaces in all names (RECEIVER_INPUT_1 -> Receiver Input 1) or define a displayname for each option (see example below). After a restart the current option of all select entities will be reset to the first command in the list as well as if the current option can not be retrieved.
 
 Power state handling is currently not working with send command and send command sequence. Please use the dedicated switch on/off/toggle commands.
-
-After a restart the current option of all select entities will be reset to the first command in the list as well as if the current option can not be retrieved.
 
 #### ⚠️ Important
 
@@ -229,7 +231,7 @@ Entity1:
           number: 2
   Selects:
     Inputs:
-    - INPUT_1
+    - INPUT_1: Video Input 1
     - INPUT_2
 ```
 
