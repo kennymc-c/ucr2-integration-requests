@@ -34,7 +34,7 @@ Entity1:
       Parameter:
         address: 192.168.1.101:12345
         text: raw=0xDF 0xAD 0xBE 0xEF 0x00 0xFF
-        timeout: 7
+        timeout: 6
   Selects:
     Inputs:
     - INPUT_1: Video Input 1

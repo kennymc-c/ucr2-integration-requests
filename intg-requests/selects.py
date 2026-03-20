@@ -190,7 +190,7 @@ async def select_cmd_handler(entity: ucapi.Select, cmd_id: str, _params: dict | 
             if _params["cycle"] == "false":
                 cycle = False
         except KeyError:
-            pass  #TODO #WAIT Cycle parameter currently not included in web configurator or commands
+            pass  #Needed for next/previous commands created before 2.9.0 that don't include any parameters
 
     try:
         options, remote_config = _get_data(entity.id, custom_entities)

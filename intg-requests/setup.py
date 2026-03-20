@@ -507,13 +507,13 @@ async def show_custom_entity_config(msg: ucapi.UserDataResponse) -> ucapi.Reques
                 "label": {"en": "Custom entities configuration", "de": "Eigene Entitäten-Konfiguration"},
                 "field": { "label":
                             { "value": {
-                                        "en": "Create your own remote entities with pre-defined commands. More details can be found in the readme file.\n\
-                                        ⚠️ Important: If you remove an entity from the configuration you need to manually remove it from the list and re-add it. \
-                                        after completing this setup. Removed entities will otherwise be shown as unavailable after a restart of the remote/integration",
-                                        "de": "Erstelle deine eigenen Remote-Entitäten mit vor-definierten Befehlen. Mehr Details findest du in der Readme-Datei.\n\
-                                        ⚠️ Wichtig: Wenn du eine Entität aus der Konfiguration entfernst, musst du diese Entität, nachdem du diese Einrichtung abgeschlossen hast, \
-                                        aus der Liste entfernen und wieder hinzufügen. Entfernte Entitäten werden sonst nach einem Neustart der Fernbedienung/Integration \
-                                        als nicht verfügbar angezeigt"
+                                        "en": "Create your own remote entities with pre-defined commands. More details can be found in the readme file.\
+                                        \n\n⚠️ Important: If you remove an entity from the configuration you need to manually remove it from the list of available entities \
+                                        after completing this setup. Removed entities will otherwise be shown as unavailable after a restart of the remote/integration.",
+                                        "de": "Erstelle deine eigenen Remote-Entitäten mit vor-definierten Befehlen. Mehr Details findest du in der Readme-Datei.\
+                                        \n\n⚠️ Wichtig: Wenn du eine Entität aus der Konfiguration entfernst, musst du diese Entität, nachdem du diese Einrichtung abgeschlossen hast, \
+                                        aus der Liste der verfügbaren Entitäten entfernen. Entfernte Entitäten werden sonst nach einem Neustart der Fernbedienung/Integration \
+                                        als nicht verfügbar angezeigt."
                                         }
                             }
                         },

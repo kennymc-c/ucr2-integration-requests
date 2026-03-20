@@ -590,7 +590,7 @@ The Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
 
                 if "custom_entities_title_case_select_options" in configfile:
                     Setup.__conf["custom_entities_title_case_select_options"] = configfile["custom_entities_title_case_select_options"]
-                    _LOG.info("Loaded custom_entities_title_case_select_options: " + str(configfile[""]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
+                    _LOG.info("Loaded custom_entities_title_case_select_options: " + str(configfile["custom_entities_title_case_select_options"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
                     _LOG.debug("Skip loading custom_entities_title_case_select_options as no custom configuration has been set during setup.")
 

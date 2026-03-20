@@ -5,12 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.2] - 2026-03-20
+
+### Fixed
+
+- Fixed crash after restart if title case option for custom select entity options was enabled
+
 ## [0.10.1] - 2026-03-11
 
 ### Added
 
 - Added a custom select entities option to convert all select entity options to a title cased variant and replace underscores with spaces (RECEIVER_INPUT_1 -> Receiver Input 1)
-- Added a custom select entities option to define a displayname for each option (([#12](https://github.com/kennymc-c/ucr2-integration-requests/issues/12)))
+- Added a custom select entities option to define a displayname for each option ([#12](https://github.com/kennymc-c/ucr2-integration-requests/issues/12))
 
 ### Fixed
 
