@@ -15,11 +15,14 @@ import media_player
 import remote
 import selects
 import setup
+import i18n
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 
 loop = asyncio.get_event_loop() #TODO Change to new_event_loop() when using Python 3.12+
 api = ucapi.IntegrationAPI(loop)
+
+_LANGUAGE_INITIALIZED = False
 
 
 
@@ -55,6 +58,11 @@ async def add_mp(entity_id: str, entity_name: str):
             ucapi.media_player.Features.SELECT_SOURCE
         ],
         attributes={ucapi.media_player.Attributes.STATE: ucapi.media_player.States.ON},
+        icon="uc:command",
+        description={
+            "en": f"Media player entity to send {entity_name} commands via the \"input source\" command",
+            "de": f"Media Player Entität zum Senden von {entity_name}-Befehlen über den \"Eingang oder Quelle\"-Befehl"
+        },
         cmd_handler=mp_cmd_handler
     )
 
@@ -143,6 +151,10 @@ async def add_custom_entities(custom_entities: dict[str, Any]) -> None:
                 name=f"{entity_name} - {select_name}",
                 attributes={ucapi.select.Attributes.STATE: ucapi.select.States.ON},
                 #Other attributes will be updated/set during the subscribe entities event
+                description={
+                    "en": f"Select entity for {select_name} options of {entity_name}",
+                    "de": f"Select Entität für {select_name} Optionen von {entity_name}"
+                },
                 cmd_handler=selects.select_cmd_handler
             )
 
@@ -151,7 +163,7 @@ async def add_custom_entities(custom_entities: dict[str, Any]) -> None:
 
 
 @api.listens_to(ucapi.Events.CONNECT)
-async def on_intg_connect() -> None:
+async def on_intg_connect(websocket) -> None:
     """
     Connect notification from Remote.
 
@@ -160,6 +172,25 @@ async def on_intg_connect() -> None:
     _LOG.info("Received connect event message from remote")
 
     await api.set_device_state(ucapi.DeviceStates.CONNECTED)
+
+    # Set the language for messages only once
+    global _LANGUAGE_INITIALIZED
+    if not _LANGUAGE_INITIALIZED:
+        try:
+            resp = await api.get_localization_cfg(websocket)
+            language_code = resp.get("language_code") if resp else i18n.Languages.ENGLISH.value
+            if language_code not in i18n.Languages.get_values():
+                _LOG.info(f"No translations available for language \"{language_code}\". Using default language \"{i18n.Languages.ENGLISH.value}\"")
+                language_code = i18n.Languages.ENGLISH.value
+            i18n.Handler.set_language(language_code)
+            _LOG.info(f"Integration language set to {language_code}")
+            _LANGUAGE_INITIALIZED = True
+        except ConnectionError:
+            # WebSocket disconnected is expected when client disconnects during request
+            _LANGUAGE_INITIALIZED = True
+        except Exception as e:
+            _LOG.warning(f"Could not retrieve language configuration: {e}. Using default language \"{i18n.Languages.ENGLISH.value}\"")
+            _LANGUAGE_INITIALIZED = True
 
 
 
@@ -244,20 +275,18 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
 
 
 
-#BUG No event when removing an entity as configured entity. Could be a UC Python library or core/web configurator bug.
-# https://github.com/unfoldedcircle/integration-python-library/issues/25
 @api.listens_to(ucapi.Events.UNSUBSCRIBE_ENTITIES)
 async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
     """
     Unsubscribe to given entities.
 
     :param entity_ids: entity identifiers.
-
-    Just show a debug log message as there is not device to disconnect.
     """
-    _LOG.info("Unsubscribe entities event for entity ids: %s", entity_ids)
+    _LOG.info("Received unsubscribe entities event for entity ids: " + str(entity_ids))
 
-    #TODO #WAIT Add api.configured_entities.remove(entity_ids) when the unsubscribe event is handled by the integration API
+    for entity_id in entity_ids:
+        api.configured_entities.remove(entity_id)
+        _LOG.info(f"Removed entity with id {entity_id} from configured entities list")
 
 
 
@@ -277,6 +306,7 @@ def setup_logger():
     logging.getLogger("sensor").setLevel(level)
     logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
+    logging.getLogger("i18n").setLevel(level)
     logging.getLogger("getmac").setLevel(level)
 
 

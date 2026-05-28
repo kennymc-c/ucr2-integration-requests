@@ -8,7 +8,7 @@
   env:
     INTG_NAME: requests
     # Python version to use in the builder image. See https://hub.docker.com/r/unfoldedcircle/r2-pyinstaller for possible versions.
-    PYTHON_VER: 3.11.13-0.5.0
+    PYTHON_VER: 3.11.13-0.6.0
   
   jobs:
     build:

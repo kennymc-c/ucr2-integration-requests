@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-05-28
+
+_With firmware 2.9.3 or newer you can now finally update all custom integrations through the web configurator without having to delete the integration first and re-adding all entities on your profile pages. See [Updating](/README.md#updating)._
+
+### Added
+
+- Added expected ok and error response regular expression parameters for text over tcp commands to define what response should trigger an a successful or command or an error on the remote ([Expected ok & error response parameters](/README.md#expected-ok--error-response-matching))
+- Added support for SecureOn Wake-on-LAN hex passwords by separating the address and password with a slash (`00:00:1c:ab:cd:ef/aa:bb:cc:dd:ee:ff`)
+  - This has been added as the pywakeonlan library now supports this feature. Please report any issues as I don't own any supported device/NIC
+- Added a German translation for internal sensor status messages (e.g. no match found for regex in response sensors)
+  - After changing the language on the remote the integration needs to be re-connected or the integration/remote needs to be restarted to be able to use the new language
+- Added a default custom icon and description to all media player entities and a description for all sensor and select entities
+
+### Changed
+
+- Updated requests Python library to 2.34.2
+- Updated pywakeonlan Python library to 3.3.0
+- Updated ucapi Python library to 0.7.0
+- Updated pyinstaller build image to 0.6.0
+
 ## [0.10.2] - 2026-03-20
 
 ### Fixed

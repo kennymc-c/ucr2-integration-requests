@@ -8,8 +8,6 @@ import driver
 
 _LOG = logging.getLogger(__name__)
 
-#TODO Add possibility to add additional sensor entities in advanced setup.
-# Each sensor then can be linked to a specific http request command by using a special command parameter
 
 
 async def add_rq_sensor(ent_id: str, name: str):
@@ -21,7 +19,12 @@ async def add_rq_sensor(ent_id: str, name: str):
         features=None, #Mandatory although sensor entities have no features
         attributes={ucapi.sensor.Attributes.STATE: ucapi.sensor.States.ON, ucapi.sensor.Attributes.VALUE: ""},
         device_class=ucapi.sensor.DeviceClasses.CUSTOM,
-        options=None
+        options=None,
+        icon="uc:arrow-progress",
+        description={
+            "en": "Sensor entity to display the response of the last http request command",
+            "de": "Sensor Entität zur Anzeige der Antwort des letzten HTTP-Anfrage-Befehls"
+        }
     )
 
     driver.api.available_entities.add(definition)
@@ -58,7 +61,12 @@ async def add_tcp_text_sensor(ent_id: str, name: str):
         features=None, #Mandatory although sensor entities have no features
         attributes={ucapi.sensor.Attributes.STATE: ucapi.sensor.States.ON, ucapi.sensor.Attributes.VALUE: ""},
         device_class=ucapi.sensor.DeviceClasses.CUSTOM,
-        options=None
+        options=None,
+        icon="uc:arrow-progress",
+        description={
+            "en": "Sensor entity to display the response of the last text over tcp command",
+            "de": "Sensor Entität zur Anzeige der Antwort des letzten Text über TCP-Befehls"
+        }
     )
 
     driver.api.available_entities.add(definition)

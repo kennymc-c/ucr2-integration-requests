@@ -77,7 +77,7 @@ async def send_command(entity_id: str, entity_config: dict[str, Any], command: s
             cmd_status = await commands.wol(cmd_param)
 
         case "tcp-text":
-            cmd_status = await commands.tcp_text(cmd_param)
+            cmd_status = await commands.tcp_text(cmd_param, entity_config)
 
         case "get" | "post" | "put" | "delete" | "patch" | "head":
             http_method = cmd_type

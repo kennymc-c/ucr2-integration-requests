@@ -173,7 +173,7 @@ async def show_advanced_setup(msg) -> ucapi.RequestUserInput:
     index_rq_response_nomatch_option = next((i for i, d in enumerate(regex_nomatch_dropdown_items) if d.get("id") == rq_response_nomatch_option), 0)
 
     _LOG.debug(f"Currently stored - tcp_text_timeout: {str(tcp_text_timeout)}, tcp_text_response_wait: {str(tcp_text_response_wait)}, \
-tcp_text_terminator: {repr(tcp_text_terminator)}, tcp_text_response_regex: {str(tcp_text_response_regex)}, tcp_text_response_nomatch_option: \
+tcp_text_terminator: {repr(tcp_text_terminator)}, tcp_text_response_nomatch_option: \
 {str(tcp_text_response_nomatch_option)}, rq_timeout: {str(rq_timeout)}, rq_ssl_verify: {str(rq_ssl_verify)}, rq_fire_and_forget: {str(rq_fire_and_forget)}, \
 rq_user_agent: {str(rq_user_agent)}, rq_response_regex: {str(rq_response_regex)}, \
 rq_response_nomatch_option: {str(rq_response_nomatch_option)}")
@@ -494,8 +494,6 @@ async def show_custom_entity_config(msg: ucapi.UserDataResponse) -> ucapi.Reques
     custom_entities_title_case_select_options = config.Setup.get("custom_entities_title_case_select_options")
     config.Setup.set("setup_step", "handle_custom")
 
-    #BUG \n\n causing a formatting error (wrong font and alignment) in label value field
-    #TODO Create issue on bug & feature tracker with examples from the python example configuration
     return ucapi.RequestUserInput(
         {
             "en": "Custom Entity Configuration",

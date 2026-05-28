@@ -7,6 +7,8 @@ import logging
 import ast
 import shlex
 import string
+import re
+from typing import Any
 
 from re import sub, search, fullmatch, IGNORECASE
 from ipaddress import ip_address, IPv4Address, IPv6Address, AddressValueError
@@ -21,6 +23,7 @@ from getmac import get_mac_address
 
 import config
 import sensor
+import i18n
 
 _LOG = logging.getLogger(__name__)
 
@@ -157,8 +160,7 @@ def update_response(response: str, cmd: str):
                 parsed_response = response
             elif nomatch_option == "error":
                 _LOG.debug("An error message will be used instead")
-                #TODO #WAIT Add a translation for the error message when get_localization_cfg() is implemented in the Python API
-                parsed_response = "No match found"
+                parsed_response = i18n.Handler.localize(i18n.Messages.NO_MATCH)
             elif nomatch_option == "empty":
                 _LOG.debug("An empty response will be used instead")
                 parsed_response = ""
@@ -319,29 +321,56 @@ def is_printable(s):
 
 
 
-async def tcp_text(cmd_param: str) -> str:
+async def tcp_text(cmd_param: str, entity_config: dict[str, Any] = None) -> str:
     """Send a text over TCP command to the passed address and return the status code."""
-
-    #TODO Add an expected ok response message parameter that can be used to check if the server response is correct or an error occurred
-    #TODO Add a response sensor like for http requests to show the last received response message
 
     timeout = config.Setup.get("tcp_text_timeout")
     response_wait = config.Setup.get("tcp_text_response_wait")
     terminator = config.Setup.get("tcp_text_terminator")
+    response_ok = ""
+    response_error = ""
 
     if isinstance(cmd_param, dict): # Check if cmd_param is already a dict when coming from a custom entity config
         address = cmd_param["address"]
         data = cmd_param["text"]
         timeout = cmd_param.get("timeout", config.Setup.get("tcp_text_timeout"))
+        response_ok = cmd_param.get("response_ok")
+        response_error = cmd_param.get("response_error")
+        # Add global tcp_response_ok and tcp_response_error from entity config if not already in cmd_param
+        if not response_ok and entity_config and "tcp_response_ok" in entity_config:
+            response_ok = entity_config["tcp_response_ok"]
+        if not response_error and entity_config and "tcp_response_error" in entity_config:
+            response_error = entity_config["tcp_response_error"]
     else:
         params = {}
-        for part in cmd_param.split(","):
-            part = part.strip()
-            if "=" in part:
-                key, value = part.split("=", 1)
-                params[key.strip()] = value.strip().strip('"\'')
-        address = params.get("address")
-        data = params.get("text", "")
+        address = None
+        data = ""
+
+        lexer = shlex.shlex(cmd_param, posix=True)
+        lexer.whitespace_split = True
+        lexer.whitespace = ","
+        lexer.quotes = '"'
+        tokens = [token.strip() for token in lexer if token.strip()]
+
+        for token in tokens:
+            if "=" in token:
+                key, value = token.split("=", 1)
+                key = key.strip()
+                if key in {"address", "text", "response_ok", "response_error", "timeout", "response_wait"}:
+                    params[key] = value.strip()
+                    continue
+            if address is None:
+                address = token
+            elif data == "":
+                data = token
+            else:
+                _LOG.warning("Ignored extra tcp_text parameter: %s", token)
+
+        address = params.get("address", address)
+        data = params.get("text", data)
+        response_ok = params.get("response_ok", "")
+        response_error = params.get("response_error", "")
+
         if "timeout" in params:
             try:
                 timeout = int(params["timeout"])
@@ -355,16 +384,20 @@ async def tcp_text(cmd_param: str) -> str:
                 response_wait = False
             else:
                 _LOG.error("response_wait parameter is not a valid boolean: " + params["response_wait"])
+
     if not address:
-        address, data = cmd_param.split(",", 1)  # Split only at the 1st comma
+        _LOG.error("No address parameter found for tcp_text command")
+        return ucapi.StatusCodes.BAD_REQUEST
 
     host, port = address.split(":")
     port = int(port)
     data = data.strip().strip('"\'')  # Remove spaces and (double) quotes
 
-    _LOG.debug("address: " + address + ", text: " + repr(data) + ", timeout: " + str(timeout) + ", response_wait: " + str(response_wait) + ", terminator: " + repr(terminator))
     if timeout != config.Setup.get("tcp_text_timeout"):
         _LOG.debug("Command specific timeout of " +  str(timeout) + " seconds defined")
+
+    _LOG.debug(f"address: {address}, text: {repr(data)}, timeout: {timeout}, response_wait: {response_wait}, \
+terminator: {repr(terminator)}")
 
     writer = None
     try:
@@ -423,6 +456,48 @@ async def tcp_text(cmd_param: str) -> str:
             _LOG.info("Received binary response: " + binary_message)
             update_response(binary_message, "tcp-text")
 
+    if response_ok or response_error:
+
+        ok_match = False
+        error_match = False
+
+        # Determine which text to use for matching (prefer processed text if available)
+        match_text = ""
+        if "processed_message" in locals() and processed_message:
+            match_text = processed_message
+        elif received_message:
+            match_text = received_message
+        else:
+            match_text = binary_message
+
+        if response_ok:
+            _LOG.debug("Expected ok response defined: " + repr(response_ok))
+            try:
+                ok_match = search(flags=IGNORECASE, pattern=response_ok, string=match_text)
+            except Exception:
+                _LOG.error("Invalid regular expression for response_ok: " + repr(response_ok))
+                return ucapi.StatusCodes.BAD_REQUEST
+        if response_error:
+            _LOG.debug("Expected error response defined: " + repr(response_error))
+            try:
+                error_match = search(flags=IGNORECASE, pattern=response_error, string=match_text)
+            except Exception:
+                _LOG.error("Invalid regular expression for response_error: " + repr(response_error))
+                return ucapi.StatusCodes.BAD_REQUEST
+
+        if ok_match and error_match:
+            _LOG.warning("Received response matching both the expected ok and error response. Please refine your regular expressions")
+            _LOG.info("Will return OK status code when both regexes match to avoid false positive error status codes")
+            return ucapi.StatusCodes.OK
+        if ok_match:
+            _LOG.info("Received response matching the expected ok response: " + match_text)
+            return ucapi.StatusCodes.OK
+        if error_match:
+            _LOG.info("Received response matching the expected error response: " + match_text)
+            return ucapi.StatusCodes.SERVER_ERROR
+        _LOG.warning("Did not receive a response matching either the ok or error response. Please check your regular expressions and the received response: " + match_text)
+        return ucapi.StatusCodes.BAD_REQUEST
+
     return ucapi.StatusCodes.OK
 
 
@@ -455,8 +530,12 @@ async def wol(cmd_param: str | dict)  -> ucapi.StatusCodes:
             addresses.append(cmd_param)
 
     macs = []
+    password = None
     if addresses:
         for address in addresses:
+            if "/" in address:
+                address, password = address.split("/")
+                _LOG.info("Using SecureOn password for address: " + address)
             try:
                 mac = get_mac(address)
             except ValueError as v:
@@ -470,6 +549,8 @@ async def wol(cmd_param: str | dict)  -> ucapi.StatusCodes:
                 _LOG.error("Got an error while retrieving the mac address")
                 _LOG.error(e)
                 return ucapi.StatusCodes.BAD_REQUEST
+            if password:
+                mac = f"{mac}/{password}"
             macs.append(mac)
 
     try:

@@ -1,5 +1,5 @@
-ucapi==0.5.2
-requests==2.32.5
-wakeonlan==3.1.0
+ucapi==0.7.0
+requests==2.34.2
+wakeonlan==3.3.0
 getmac==0.9.5
 pyyaml==6.0.3

@@ -26,7 +26,9 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
     - [Control characters](#control-characters)
       - [Escaping](#escaping)
     - [Sending Raw data](#sending-raw-data)
-    - [Response sensor entity](#response-sensor-entity-1)
+    - [Response handling](#response-handling)
+      - [Response sensor entity](#response-sensor-entity-1)
+      - [Expected ok \& error response matching](#expected-ok--error-response-matching)
   - [4 - Custom Entities (Remote \& Select)](#4---custom-entities-remote--select)
     - [⚠️ Important](#️-important)
     - [Example yaml configuration](#example-yaml-configuration)
@@ -95,7 +97,7 @@ Enter the desired mac, ip address (ipv4/v6) or hostname. Multiple addresses can 
 
 #### Supported parameters
 
-All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) are supported (interface=, port=, ip_address=)
+All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) are supported (interface=, port=, ip_address=). [SecureOn](https://en.wikipedia.org/wiki/Wake-on-LAN#Unauthorized_access) hex passwords are also supported by separating the address and password with a slash (`00:00:1c:ab:cd:ef/aa:bb:cc:dd:ee:ff`)
 
 ### 2 - HTTP requests
 
@@ -162,11 +164,31 @@ C++ and hex style control characters are supported to e.g. add a new line (`\n` 
 
 By adding `raw=` at the beginning of your message you can send raw binary data instead of utf-8 encoded text. Binary data has to be written as hex bytes (`0x00`), words (`0x0000`), double words or longer values (e.g. `192.168.1.1:1234, "raw=0x68 0x65 0x6C 0x6C 0x6F 0x20 0x77 0x6F 0x72 0x6C 0x64"`). The `0x` prefix is optional. The configured command terminator is ignored in this case.
 
-#### Response sensor entity
+#### Response handling
+
+##### Response sensor entity
 
 The integration exposes a sensor entity that shows the text of the response body from the last executed http request command. If the sensor entity has not been added as a configured entity in the web configurator a info message will be shown in the integration log.
 
 The output can be parsed to only show a specific part of the response message using regular expressions. These can be configured in the advanced setup. Sites like [regex101.com](https://regex101.com) or the AI model of your choice can help you with finding matching expressions. By default the complete response message will be used if no regular expression has been set or no matches have been found. The advanced setup has an option to use an empty response or show an error message instead if no match has been found.
+
+##### Expected ok & error response matching
+
+By default every response message is handled as if the command has been executed successfully. When you know what response is expected if a command succeeded or failed you can set a regular expression matching the ok or error response using the `response_ok` and `response_error` parameters. If they match the received response either a OK status code is sent to the remote as a command response for the `response_ok` parameter or a server error for a matching `response_error` parameter. If both expressions match every response is interpreted as a command success response.
+
+For custom entities (see below) you can additionally define `tcp_response_ok` and `tcp_response_error` in the second (entity) level (same as Features, Simple Commands and Selects). These will be used for all text over tcp commands for that entity so not every commands needs to have their own response parameters. Please make sure to put the regex in single quotes.
+
+```yaml
+Entity1:
+  Features:
+    ...
+  Simple Commands:
+    ...
+  Selects:
+    ...
+  tcp_response_ok: '.*OK'
+  tcp_response_error: 'ERROR|FAIL'
+```
 
 ### 4 - Custom Entities (Remote & Select)
 
@@ -186,7 +208,7 @@ Power state handling is currently not working with send command and send command
 
 - Please **backup your configuration** somewhere else if you're running the integration as a custom integration on the remote as custom integrations are not yet included in the remote backup file
 - The name for the ```On``` and ```Off``` features have to be written in quotes as they get converted into boolean values otherwise
-- If you have any special characters or the words ```true, false, yes, no, on, off, null``` in your command parameters or names it's advised to put it in quotes as well
+- If you have any special characters (like in regular expressions) or the words ```true, false, yes, no, on, off, null``` in your command parameters or names it's advised to put it in quotes as well
 - The ```On``` and ```Off``` features have to be always used together and not separately
 - If you removed an entity from the configuration (either a full entity configuration or just one or more connected select entities) these don't get automatically removed from your configured entities list. You have to do this manually or do it before updating the configuration. If you restart the remote/integration they also be shown as unavailable otherwise.
 

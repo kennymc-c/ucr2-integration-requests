@@ -11,6 +11,7 @@ import ucapi
 _LOG = logging.getLogger(__name__)
 
 
+
 def check_duplicate_yaml_entities(yaml_text: str):
     """Checks for duplicate entity names in the YAML custom entities configuration."""
     keys = []
@@ -242,7 +243,7 @@ def validate_yaml(yaml_string: str) -> dict:
         allowed_features.extend(["on", "off"])
         allowed_features.remove("on_off")
 
-    allowed_second_level = {"features", "simple commands", "selects"}
+    allowed_second_level = {"features", "simple commands", "selects", "tcp_response_ok", "tcp_response_error"}
     allowed_fourth_level = {"type", "parameter"}
     allowed_types = set([cmd.lower() for cmd in Setup.all_cmds])
 
@@ -455,12 +456,16 @@ from the default value of " + str(Setup.__conf[key]))
                             yaml_path = Setup.__conf["yaml_path"]
                             try:
                                 with open(yaml_path, "w", encoding="utf-8") as f:
-                                    # Leave the keys order as in the dict with sort_keys=False which is True by default
-                                    f.write(dump(value, allow_unicode=True, sort_keys=False))
+                                    # Preserve the original YAML text when it was provided as a string.
+                                    if isinstance(value, str):
+                                        f.write(value)
+                                    else:
+                                        # Leave the keys order as in the dict with sort_keys=False which is True by default
+                                        f.write(dump(value, allow_unicode=True, sort_keys=False))
                                 _LOG.debug("Stored custom entities configurations as YAML string into " + yaml_path)
                                 # Update cache to match the just-written file
                                 try:
-                                    Setup._custom_entities_cache = value
+                                    Setup._custom_entities_cache = Setup._custom_entities
                                     Setup._custom_entities_cache_mtime = os.path.getmtime(yaml_path)
                                 except Exception:
                                     pass
@@ -590,7 +595,8 @@ The Default value " + str(Setup.get("rq_fire_and_forget")) + " will be used")
 
                 if "custom_entities_title_case_select_options" in configfile:
                     Setup.__conf["custom_entities_title_case_select_options"] = configfile["custom_entities_title_case_select_options"]
-                    _LOG.info("Loaded custom_entities_title_case_select_options: " + str(configfile["custom_entities_title_case_select_options"]) + " flag into runtime storage from " + Setup.__conf["cfg_path"])
+                    _LOG.info("Loaded custom_entities_title_case_select_options: " + str(configfile["custom_entities_title_case_select_options"]) + \
+" flag into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
                     _LOG.debug("Skip loading custom_entities_title_case_select_options as no custom configuration has been set during setup.")
 
