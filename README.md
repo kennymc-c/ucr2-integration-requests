@@ -32,6 +32,7 @@ Using [uc-integration-api](https://github.com/aitatoi/integration-python-library
   - [4 - Custom Entities (Remote \& Select)](#4---custom-entities-remote--select)
     - [⚠️ Important](#️-important)
     - [Example yaml configuration](#example-yaml-configuration)
+    - [Community configuration files](#community-configuration-files)
     - [Using variables](#using-variables)
       - [Example](#example)
 - [Installation](#installation)
@@ -257,6 +258,15 @@ Entity1:
     - INPUT_1: Video Input 1
     - INPUT_2
 ```
+
+#### Community configuration files
+
+Some users have shared their custom entity configuration files on UCs community Discord server ([unfolded.chat](https://unfoled.chat)):
+
+- [Sony Bravia TVs](https://discord.com/channels/553671366411288576/1233775059575767172/1447149559963848784)
+- [Dune HD 8K](https://discord.com/channels/553671366411288576/1233775059575767172/1511290721125011556)
+- [PJLink (only HDMI 1/2 and ON/OFF)](https://discord.com/channels/553671366411288576/1233775059575767172/1511622978784329781)
+- [Pioneer BDP450](https://discord.com/channels/553671366411288576/1233775059575767172/1511622978784329781)
 
 #### Using variables
 
