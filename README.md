@@ -266,7 +266,7 @@ Some users have shared their custom entity configuration files on UCs community 
 - [Sony Bravia TVs](https://discord.com/channels/553671366411288576/1233775059575767172/1447149559963848784)
 - [Dune HD 8K](https://discord.com/channels/553671366411288576/1233775059575767172/1511290721125011556)
 - [PJLink (only HDMI 1/2 and ON/OFF)](https://discord.com/channels/553671366411288576/1233775059575767172/1511622978784329781)
-- [Pioneer BDP450](https://discord.com/channels/553671366411288576/1233775059575767172/1511622978784329781)
+- [Pioneer BDP450](https://discord.com/channels/553671366411288576/1233775059575767172/1512899747206398013)
 
 #### Using variables
 
