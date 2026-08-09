@@ -13,7 +13,7 @@
   jobs:
     build:
       name: Build Release
-      runs-on: ubuntu-latest-arm
+      runs-on: ubuntu-24.04-arm
       #Save version to env output variable to be able to use it in the following release job as a tag
       outputs:
         version: ${{ steps.get-version-and-id.outputs.VERSION }}
