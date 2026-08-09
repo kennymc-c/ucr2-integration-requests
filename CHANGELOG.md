@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-08-09
+
+### ⚠️ Breaking
+
+- Renamed wake-on-lan parameters `ip_address` to `host` and `address_family` to `family` due to changes in the `pywakeonlan` Python library
+
+### Added
+
+- Automatically replace curly/smart quotes from rich text sources with straight quotes that may have been unintentionally/unknowingly copy/pasted in the source parameter field of http request and text over tcp media player entities
+  - If a quote has been replaced a warning is shown in the integration log
+- Simplified `family` wake-on-lan parameter values: You can now also use `4` for ipv4 and `6` for ipv6 in addition to the rather unknown Python-specific `socket.AddressFamily` integers `2` and `10` for ip address families
+  - If `family` is not specified, it's chosen automatically between IPv4 and IPv6
+
+### Changed
+
+- Optimized check if the integration is running on the remote as a custom integration
+- Using arm64 native runner for a faster build workflow
+- Updated checkout action in build workflow to v7.0.1
+- Updated pywakeonlan Python library to 4.0.0
+- Updated pyinstaller build image to 0.7.0
+- Pinned action versions in build workflow
+
 ## [0.11.0] - 2026-05-28
 
 _With firmware 2.9.3 or newer you can now finally update all custom integrations through the web configurator without having to delete the integration first and re-adding all entities on your profile pages. See [Updating](/README.md#updating)._

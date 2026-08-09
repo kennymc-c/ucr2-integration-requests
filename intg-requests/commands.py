@@ -6,8 +6,8 @@ import asyncio
 import logging
 import ast
 import shlex
+import socket
 import string
-import re
 from typing import Any
 
 from re import sub, search, fullmatch, IGNORECASE
@@ -18,7 +18,7 @@ import ucapi
 from requests import request
 from requests import codes as http_codes
 from requests import exceptions as rq_exceptions
-from wakeonlan import send_magic_packet
+from wakeonlan import wake
 from getmac import get_mac_address
 
 import config
@@ -132,6 +132,38 @@ def tcp_text_process_control_data(data):
     return data
 
 
+def normalize_quotes(s: str) -> str:
+    """Normalize various unicode quote characters to straight ASCII quotes.
+
+    This handles common curly/smart quotes and fullwidth variants so the
+    shlex lexer which expects '"' and "'" works reliably when users paste
+    text from rich-text sources.
+    """
+    if not isinstance(s, str):
+        return s
+    trans = {
+        0x201C: 0x22,  # LEFT DOUBLE QUOTATION MARK “ -> "
+        0x201D: 0x22,  # RIGHT DOUBLE QUOTATION MARK ” -> "
+        0x201E: 0x22,  # DOUBLE LOW-9 QUOTATION MARK „ -> "
+        0x201F: 0x22,  # DOUBLE HIGH-REVERSED-9 QUOTATION MARK ‟ -> "
+        0xFF02: 0x22,  # FULLWIDTH QUOTATION MARK -> "
+        0x2018: 0x27,  # LEFT SINGLE QUOTATION MARK ‘ -> '
+        0x2019: 0x27,  # RIGHT SINGLE QUOTATION MARK ’ -> '
+        0x201A: 0x27,  # SINGLE LOW-9 QUOTATION MARK ‚ -> '
+        0x201B: 0x27,  # SINGLE HIGH-REVERSED-9 QUOTATION MARK ‛ -> '
+        0xFF07: 0x27,  # FULLWIDTH APOSTROPHE -> '
+    }
+    result = s.translate(trans)
+    if result != s:
+        try:
+            _LOG.warning("Replaced smart/curly quotes in source parameter with straight ASCII quotes. \
+Please check your input and only use straight quotes")
+        except Exception:
+            # Logging must not break parsing; swallow any logging errors
+            pass
+    return result
+
+
 def update_response(response: str, cmd: str):
     """Parse http request or tcp text response with configured regular expression and update the corresponding sensor entity"""
 
@@ -192,6 +224,8 @@ def http_request(method: str, cmd_param: str=None | dict) -> int:
             _LOG.error("No url parameter found")
             return ucapi.StatusCodes.BAD_REQUEST
     else:
+        # Normalize unicode quotes so shlex can handle pasted smart quotes
+        cmd_param = normalize_quotes(cmd_param)
         if cmd_param.startswith(("http://", "https://")):
             url = cmd_param
         else:
@@ -316,7 +350,7 @@ Ignoring global ssl verification setting: " + str(rq_ssl_verify))
 
 
 def is_printable(s):
-    """Check if all characters in the string are printable"""
+    """Check if all characters in the tcp-text response string are printable"""
     return all(c in string.printable for c in s)
 
 
@@ -346,6 +380,8 @@ async def tcp_text(cmd_param: str, entity_config: dict[str, Any] = None) -> str:
         address = None
         data = ""
 
+        # Normalize unicode quotes so shlex can handle pasted smart quotes
+        cmd_param = normalize_quotes(cmd_param)
         lexer = shlex.shlex(cmd_param, posix=True)
         lexer.whitespace_split = True
         lexer.whitespace = ","
@@ -520,9 +556,34 @@ async def wol(cmd_param: str | dict)  -> ucapi.StatusCodes:
             for value in values:
                 value = value.strip()
                 if "=" in value:
-                    name, param = value.split("=")
+                    name, param = value.split("=", 1)
                     if name == "port":
-                        param = int(param)
+                        try:
+                            param = int(param)
+                        except ValueError:
+                            _LOG.error(f"Invalid \"port\" parameter: \"{param}\". Value must be an integer")
+                            return ucapi.StatusCodes.BAD_REQUEST
+                    if name == "family":
+                        try:
+                            param = int(param)
+                        except ValueError:
+                            _LOG.error(f"Invalid \"family\" parameter: \"{param}\". Value must be an integer")
+                            return ucapi.StatusCodes.BAD_REQUEST
+                        if param not in (2, 10, 4, 6):
+                            _LOG.error(f"Invalid \"family\" parameter: \"{param}\". Value must be either 2, 10, 4 or 6")
+                            return ucapi.StatusCodes.BAD_REQUEST
+                        if param == 4:
+                            param = socket.AF_INET
+                            _LOG.debug("Using socket.AF_INET for sending the magic packet")
+                        elif param == 6:
+                            param = socket.AF_INET6
+                            _LOG.debug("Using socket.AF_INET6 for sending the magic packet")
+                        elif param == 2:
+                            param = socket.AF_INET
+                            _LOG.debug("Using socket.AF_INET for sending the magic packet")
+                        elif param == 10:
+                            param = socket.AF_INET6
+                            _LOG.debug("Using socket.AF_INET6 for sending the magic packet")
                     params[name] = param
                 else:
                     addresses.append(value)
@@ -540,7 +601,7 @@ async def wol(cmd_param: str | dict)  -> ucapi.StatusCodes:
                 mac = get_mac(address)
             except ValueError as v:
                 _LOG.error(v)
-                _LOG.error("Used WoL parameter \"" + value + "\" is not a valid hostname, mac or ip address")
+                _LOG.error(f"Used WoL parameter \"{value}\" is not a valid hostname, mac or ip address")
                 return ucapi.StatusCodes.BAD_REQUEST
             except OSError as o:
                 _LOG.error(o)
@@ -555,14 +616,29 @@ async def wol(cmd_param: str | dict)  -> ucapi.StatusCodes:
 
     try:
         # Unpack macs list with * and params dict with **
-        await asyncio.gather(asyncio.to_thread(send_magic_packet, *macs, **params), asyncio.sleep(0))
+        await asyncio.gather(asyncio.to_thread(wake, *macs, **params), asyncio.sleep(0))
     except ValueError as v:
         _LOG.error(v)
         return ucapi.StatusCodes.BAD_REQUEST
     except Exception as e:
-        _LOG.error("Got an error message from Python wakeonlan module:")
-        _LOG.error(e)
-        return ucapi.StatusCodes.BAD_REQUEST
+        family = params.get("family")
+        if family in (socket.AF_INET6, 10, 6) and "host" not in params:
+            _LOG.warning("The requested IPv6 WoL family is not supported by the current environment. Retrying with the default IPv4 settings")
+            try:
+                params_without_family = dict(params)
+                params_without_family.pop("family", None)
+                await asyncio.gather(asyncio.to_thread(wake, *macs, **params_without_family), asyncio.sleep(0))
+            except Exception as fallback_error:
+                _LOG.error("Got an error message from Python wakeonlan module:")
+                _LOG.error(fallback_error)
+                return ucapi.StatusCodes.BAD_REQUEST
+        else:
+            _LOG.error("Got an error message from Python wakeonlan module:")
+            _LOG.error(e)
+            return ucapi.StatusCodes.BAD_REQUEST
 
-    _LOG.info("Sent wake on lan magic packet to mac address(es)): " + str(macs))
+    if macs:
+        _LOG.info("Sent wake on lan magic packet to mac address(es): " + str(macs) + " with parameter(s): " + str(params))
+    else:
+        _LOG.info("Sent wake on lan magic packet to mac address(es)): " + str(macs))
     return ucapi.StatusCodes.OK

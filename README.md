@@ -92,13 +92,15 @@ Additionally you can configure custom entities that can include simple commands 
 
 ### 1 - Wake-on-lan
 
-Enter the desired mac, ip address (ipv4/v6) or hostname. Multiple addresses can be separated by a comma. Mac addresses can be written with colons (:), hyphens (-), dots (.) or no separators
+Enter the desired mac, ip address (ipv4 or ipv6, optional specify with `family` parameter) or hostname. Multiple addresses can be separated by a comma. Mac addresses can be written with colons (`:`), hyphens (`-`), dots (`.`) or no separators
 
-*Note: When running as a custom integration on the remote itself only mac addresses are supported.*
+*Note: When running as a custom integration on the remote itself only mac addresses are supported as address parameter values due to sandbox limitations on the remote.*
 
 #### Supported parameters
 
-All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) are supported (interface=, port=, ip_address=). [SecureOn](https://en.wikipedia.org/wiki/Wake-on-LAN#Unauthorized_access) hex passwords are also supported by separating the address and password with a slash (`00:00:1c:ab:cd:ef/aa:bb:cc:dd:ee:ff`)
+All parameters from [pywakeonlan](https://github.com/remcohaszing/pywakeonlan) are supported (`interface`, `port`, `host` and `family`). Use them like `parameter=value` and separate multiple parameters with a comma. Unlike the `pywakeonlan` module the `family` parameter can also be used with `4` for ipv4 and `6` for ipv6 in addition to the rather unknown Python-specific `socket.AddressFamily` integers `2` and `10` for ip address families.
+
+[SecureOn](https://en.wikipedia.org/wiki/Wake-on-LAN#Unauthorized_access) hex passwords are also supported by separating the address and password with a slash (`00:00:1c:ab:cd:ef/aa:bb:cc:dd:ee:ff`)
 
 ### 2 - HTTP requests
 
@@ -112,9 +114,9 @@ If you activate the fire and forget mode the remote will always receive a *200 O
 
 #### Additional command parameters
 
-Almost all parameters from the Python requests module like `timeout`, `verify`, `data`, `json` or `headers` are supported (see [Python requests module parameters](https://requests.readthedocs.io/en/latest/api/#requests.request)) although not all of them have been tested with this integration. Simply separate them with a comma.
+Almost all parameters from the Python requests module like `timeout`, `verify`, `data`, `json` or `headers` are supported (see [Python requests module parameters](https://requests.readthedocs.io/en/latest/api/#requests.request)) although not all of them have been tested with this integration. Use them like `parameter=value` and separate multiple parameters with a comma.
 
-When using one or more parameters you need to use the `url` parameter for the url itself as well. If a parameter value contains commas, equal signs or quotes put it in double quotes and use single quotes inside (see examples below).
+When using one or more parameters you need to use the `url` parameter for the url itself as well. If a parameter value contains commas (`,`), equal signs (`=`) or quotes (`"`, `'`) put them in double quotes (`"`) and use single quotes (`'`) inside (see [examples](#use-case-examples) below).
 
 #### SSL verification & Fire and forget mode
 

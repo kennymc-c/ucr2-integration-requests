@@ -8,19 +8,19 @@
   env:
     INTG_NAME: requests
     # Python version to use in the builder image. See https://hub.docker.com/r/unfoldedcircle/r2-pyinstaller for possible versions.
-    PYTHON_VER: 3.11.13-0.6.0
+    PYTHON_VER: 3.11.13-0.7.0
   
   jobs:
     build:
       name: Build Release
-      runs-on: ubuntu-latest
+      runs-on: ubuntu-latest-arm
       #Save version to env output variable to be able to use it in the following release job as a tag
       outputs:
         version: ${{ steps.get-version-and-id.outputs.VERSION }}
         driver_id: ${{ steps.get-version-and-id.outputs.DRIVER_ID }}
       steps:
         - name: Checkout
-          uses: actions/checkout@v6
+          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
           with:
             # History of 200 should be more than enough to calculate commit count since last release tag
             fetch-depth: 200
@@ -37,8 +37,6 @@
 
         - name: Build
           run: |
-            sudo apt-get update && sudo apt-get install -y qemu-system-arm binfmt-support qemu-user-static
-            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
             echo "Starting pyinstaller build"
             docker run --rm --name builder \
               --platform=linux/arm64/v8 \
@@ -66,7 +64,7 @@
             tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
             ls -lah
             
-        - uses: actions/upload-artifact@v7
+        - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
           id: upload_artifact
           with:
             name: ${{ env.ARTIFACT_NAME }}
@@ -83,7 +81,7 @@
 
       steps:
         - name: Download build artifacts
-          uses: actions/download-artifact@v8
+          uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
 
         - name: Extract build archives from downloaded files
           run: |
@@ -101,7 +99,7 @@
             for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{needs.build.outputs.driver_id}}.hash; done;
 
         - name: Create release draft
-          uses: ncipollo/release-action@v1
+          uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
           with:
             artifacts: "*.tar.gz,${{needs.build.outputs.driver_id}}.hash"
             draft: true

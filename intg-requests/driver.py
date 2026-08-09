@@ -213,7 +213,14 @@ async def on_client_connect() -> None:
     Websocket client connect notification from Remote.
     """
     _LOG.debug("Remote websocket client connected to this integration websockets server")
-    _LOG.debug("There are currently %d websocket clients connected to this integration websockets server", int(api.client_count))
+
+    client_count = int(api.client_count)
+    if client_count == 1:
+        _LOG.debug("There currently is 1 websocket client connected to this integration websockets server")
+    if client_count > 0:
+        _LOG.debug("There are currently %d websocket clients connected to this integration websockets server", client_count)
+    else:
+        _LOG.debug("No other websocket clients are currently connected to this integration websockets server")
 
 
 
@@ -223,9 +230,12 @@ async def on_client_disconnect() -> None:
     Websocket client disconnect notification from the Remote.
     """
     _LOG.debug("Remote websocket client disconnected from this integration websockets server")
+
     client_count = int(api.client_count)
+    if client_count == 1:
+        _LOG.debug("There currently is 1 remaining websocket client connected to this integration websockets server")
     if client_count > 0:
-        _LOG.debug("There are currently %d websocket clients connected to this integration websockets server", client_count)
+        _LOG.debug("There are currently %d remaining websocket clients connected to this integration websockets server", client_count)
     else:
         _LOG.debug("No other websocket clients are currently connected to this integration websockets server")
 
@@ -348,8 +358,9 @@ async def main():
 
     setup_logger()
 
-    #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format and config file path
-    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    #Check if the integration runs in a PyInstaller bundle and under systemd (which usually indicates that it's running on the remote)
+    #and adjust the logging format, config file path
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS") and os.getenv("INVOCATION_ID"):
 
         _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
         config.Setup.set("bundle_mode", True)
