@@ -12,6 +12,27 @@ _LOG = logging.getLogger(__name__)
 
 
 
+def _normalize_entity_id(entity_id: str) -> str:
+    """Convert an entity id to the format accepted by the integration API."""
+    normalized_id = re.sub(r"\s", "-", entity_id)
+    normalized_id = re.sub(r"[^a-zA-Z0-9_\-.]", "_", normalized_id)
+
+    return normalized_id
+
+
+def get_custom_entity_id(entity_name: str) -> str:
+    """Return the entity id for a custom entity name."""
+    return _normalize_entity_id(f'{Setup.get("custom_entities_prefix")}{entity_name.lower()}')
+
+
+def get_custom_select_entity_id(entity_name: str, select_name: str) -> str:
+    """Return the entity id for a custom select name."""
+    return _normalize_entity_id(
+        f'{Setup.get("custom_entities_select_prefix")}{entity_name.lower()}-{select_name.lower()}'
+    )
+
+
+
 def check_duplicate_yaml_entities(yaml_text: str):
     """Checks for duplicate entity names in the YAML custom entities configuration."""
     keys = []

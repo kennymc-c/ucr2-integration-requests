@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-08-24
+
+### ⚠️ Breaking
+
+- **Important**: All custom entities (remotes and selects) whose **names contain characters other than the following must be assigned a new entity id** and will therefore be treated as new entities. As a result, they must be **remapped in activities and macros**.
+  - `a-z`
+  - `A-Z`
+  - `0-9`
+  - `_`
+  - `-`
+  - `.`
+- If you have such custom entities, first **remove them from the configured entities list**, then **re-run the configuration** and don't change anything in the custom entities configuration
+- Custom entity *names* can still contain any special characters. This breaking change only affects existing custom entities created with earlier versions of this integration
+
+### Fixed
+
+- Fixed custom entity id creation. In earlier versions special characters were included in the id and some characters like forward slashes could cause "resource not found" errors when triggering any command
+
 ## [0.12.0] - 2026-08-09
 
 ### ⚠️ Breaking

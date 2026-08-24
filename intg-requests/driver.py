@@ -100,16 +100,17 @@ async def add_custom_entities(custom_entities: dict[str, Any]) -> None:
     :param custom_entities: dictionary of custom entities
     """
 
-    custom_prefix = config.Setup.get("custom_entities_prefix")
-    select_prefix = config.Setup.get("custom_entities_select_prefix")
-
     for entity_name, entity_config in custom_entities.items():
         _LOG.info(f"Adding custom entity \"{entity_name}\"")
 
         features = []
         attributes = {}
 
-        entity_id = f"{custom_prefix}{entity_name.lower()}"
+        entity_id = config.get_custom_entity_id(entity_name)
+
+        if entity_id != entity_name:
+            _LOG.info(f'The entity id for the entity name "{entity_name}" has been corrected to "{entity_id}"')
+
         features = list(entity_config.get("Features", {}).keys())
         simple_commands = list(entity_config.get("Simple Commands", {}).keys())
 
@@ -142,7 +143,7 @@ async def add_custom_entities(custom_entities: dict[str, Any]) -> None:
                 _LOG.warning(f"Select '{select_name}' in entity '{entity_name}' is not a list, skipping")
                 continue
 
-            select_entity_id = f"{select_prefix}{entity_name.lower()}-{select_name.lower()}"
+            select_entity_id = config.get_custom_select_entity_id(entity_name, select_name)
 
             _LOG.info(f"Adding select entity \"{select_entity_id}\"")
 

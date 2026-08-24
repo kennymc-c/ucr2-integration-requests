@@ -59,14 +59,13 @@ async def set_all_attributes():
     """Set all option attributes for all select entities"""
 
     custom_entities = config.Setup.get("custom_entities", python_dict=True)
-    select_prefix = config.Setup.get("custom_entities_select_prefix")
     use_title_case = config.Setup.get("custom_entities_title_case_select_options")
 
     for entity_name, entity_config in custom_entities.items():
 
         selects_config = entity_config.get("Selects", {}) or {}
         for select_name, select_options in selects_config.items():
-            select_entity_id = f"{select_prefix}{entity_name.lower()}-{select_name.lower()}"
+            select_entity_id = config.get_custom_select_entity_id(entity_name, select_name)
 
             # Build parallel lists: command ids (for execution) and display labels (for the UI)
             all_options = []   # display labels shown in the UI
@@ -101,9 +100,9 @@ def _get_data(entity: ucapi.Select, custom_config: dict):
     select_prefix = config.Setup.get("custom_entities_select_prefix")
 
     for entity_name in custom_config.keys():
-        if entity_name.lower() in entity:
+        if config.get_custom_entity_id(entity_name).replace(remote_prefix, select_prefix, 1) in entity:
             remote_name = entity_name
-            remote_id = f"{remote_prefix}{remote_name.lower()}"
+            remote_id = config.get_custom_entity_id(remote_name)
             break
     else:
         _LOG.error(f"No matching custom remote entity found for select entity {entity} in custom entities configuration")
@@ -111,7 +110,7 @@ def _get_data(entity: ucapi.Select, custom_config: dict):
 
     remote_config = None
     for entity_name, config_item in custom_config.items():
-        if remote_id == f"{remote_prefix}{entity_name.lower()}":
+        if remote_id == config.get_custom_entity_id(entity_name):
             remote_config = config_item
             break
     if not remote_config:
@@ -119,7 +118,7 @@ def _get_data(entity: ucapi.Select, custom_config: dict):
 
     selects_config = None
     for entity_name, entity_config in custom_config.items():
-        if entity_name.lower() in remote_id:
+        if remote_id == config.get_custom_entity_id(entity_name):
             selects_config = entity_config.get("Selects", {}) or {}
             break
     if not selects_config:
@@ -127,7 +126,7 @@ def _get_data(entity: ucapi.Select, custom_config: dict):
 
     select_options = None
     for select_name, select_options in selects_config.items():
-        if f"{select_prefix}{remote_name.lower()}-{select_name.lower()}" == entity:
+        if config.get_custom_select_entity_id(remote_name, select_name) == entity:
             return select_options, remote_config
     if select_options is None:
         _LOG.error(f"No options found for select entity {entity} in custom entities configuration")

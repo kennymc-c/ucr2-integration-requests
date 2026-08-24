@@ -201,12 +201,11 @@ async def custom_remote_cmd_handler(entity: ucapi.Remote, cmd_id: str, _params: 
         _LOG.info(f"Received {cmd_id} command with parameter {_params} for entity id {entity.id}")
 
     custom_entities = config.Setup.get("custom_entities", python_dict=True)
-    id_prefix = config.Setup.get("custom_entities_prefix")
 
     #Search for the entity configuration by matching the entity id with the configured custom entities
     entity_config = None
     for entity_name, config_item in custom_entities.items():
-        if entity.id == f"{id_prefix}{entity_name.lower()}":
+        if entity.id == config.get_custom_entity_id(entity_name):
             entity_config = config_item
             break
 
